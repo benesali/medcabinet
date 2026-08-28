@@ -57,3 +57,7 @@ logs/
 # Distribution / packaging
 *.tar.gz
 *.whl
+
+# Claude Code — local agent instructions, not for the repo
+CLAUDE.md
+.claude/
