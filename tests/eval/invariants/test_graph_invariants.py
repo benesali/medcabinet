@@ -5,6 +5,7 @@ These are deterministic Cypher-based assertions. A failed invariant means
 the data pipeline is broken, not the application. Fix data before debugging
 AI layers.
 """
+
 from __future__ import annotations
 
 import pytest

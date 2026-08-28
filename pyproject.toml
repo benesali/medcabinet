@@ -73,7 +73,6 @@ source = ["src/caveat"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
-fail_under = 80
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",

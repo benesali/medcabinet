@@ -8,6 +8,7 @@ if any test here fails, regardless of overall test suite status.
 Add combinations from the safety spec; never remove without a documented
 clinical review.
 """
+
 from __future__ import annotations
 
 import pytest
