@@ -35,6 +35,8 @@ _DLP_URL_RE = re.compile(
 )
 
 SOURCE_NAME = "SÚKL"
+# All DLP CSV files use Windows-1250 encoding (verified 2026-09-02).
+CSV_ENCODING = "cp1250"
 
 
 def discover_latest_url(catalog_url: str = CATALOG_PAGE_URL) -> str:
@@ -107,6 +109,8 @@ def download(
         filename=Path(url).name,  # e.g. "DLP20260827.zip"
         size_bytes=sum(f.stat().st_size for f in extracted),
         checksum=checksum,  # checksum of the ZIP before extraction
+        encoding=CSV_ENCODING,
+        files=sorted(f.name for f in extracted),
     )
     write_manifest(dest, manifest)
     logger.info("Manifest written — %d CSV files, checksum %s", len(extracted), checksum)
