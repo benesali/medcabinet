@@ -62,8 +62,8 @@ def _version_from_url(url: str) -> str:
 
 
 def snapshot_dir(bronze_root: Path, snapshot_date: date) -> Path:
-    """Return the path of the date-stamped SÚKL snapshot directory."""
-    return bronze_root / "sukl" / snapshot_date.isoformat()
+    """Return the path of the date-stamped SÚKL DLP snapshot directory."""
+    return bronze_root / "sukl" / "dlp" / snapshot_date.isoformat()
 
 
 def download(

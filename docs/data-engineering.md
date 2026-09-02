@@ -30,15 +30,25 @@ Store everything exactly as received. **Never overwrite — append with version 
 ```
 bronze/
   sukl/
-    2026-09-02/  ← date of download
-      dlp_lecivepripravky.csv   ← 69 759 drug registrations
-      dlp_lecivelatky.csv       ← 3 378 active ingredients (NAZEV_INN in Latin form)
-      dlp_slozeni.csv           ← 807 466 composition rows (drug↔ingredient with dose)
-      dlp_atc.csv               ← ATC classification
-      dlp_synonyma.csv          ← 273 065 ingredient aliases
-      dlp_zruseneregistrace.csv ← cancelled registrations
-      ... (30 CSV files total)
-      manifest.json  ← {source, source_version, checksum, encoding: "cp1250", files: [...]}
+    dlp/
+      2026-09-02/  ← date of download
+        dlp_lecivepripravky.csv   ← 69 759 drug registrations
+        dlp_lecivelatky.csv       ← 3 378 active ingredients (NAZEV_INN in Latin form)
+        dlp_slozeni.csv           ← 807 466 composition rows (drug↔ingredient with dose)
+        dlp_atc.csv               ← ATC classification
+        dlp_synonyma.csv          ← 273 065 ingredient aliases
+        dlp_zruseneregistrace.csv ← cancelled registrations
+        ... (30 CSV files total)
+        manifest.json  ← {source, source_version, checksum, encoding: "cp1250", files: [...]}
+    dlp_history/
+      2026-08/     ← YYYYMM label for monthly historical snapshots
+        manifest.json
+    spc/           ← PDF bundle, ~2.6 GB (Phase 3+, NLP)
+      2026-09-02/
+        manifest.json
+    pil/           ← PDF bundle, ~3 GB (Phase 3+, NLP)
+      2026-09-02/
+        manifest.json
   ddinter/
     2026-09-01/
       interactions.csv
