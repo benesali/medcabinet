@@ -21,7 +21,11 @@ dependencies = [
     "opentelemetry-sdk>=1.25",
     "opentelemetry-exporter-otlp>=1.25",
     "arize-phoenix>=4.0",
+    "httpx>=0.27",
 ]
+
+[project.scripts]
+caveat-ingest-sukl = "caveat.pipeline.bronze.sukl:main"
 
 [project.optional-dependencies]
 dev = [

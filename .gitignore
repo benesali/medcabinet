@@ -61,3 +61,8 @@ logs/
 # Claude Code — local agent instructions, not for the repo
 CLAUDE.md
 .claude/
+
+# Bronze layer — raw data snapshots (large files, never committed).
+# Ignore date-stamped snapshot directories but track the skeleton .gitkeep files.
+data/bronze/sukl/????-??-??/
+data/bronze/ddinter/????-??-??/
