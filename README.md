@@ -73,7 +73,6 @@ Includes parametric contamination testing: ablation with empty context, fictitio
 
 - Phase 0 complete — scope, domain model, data source licenses locked
 - Raw ingestors done — SÚKL (DLP, history, SPC, PIL), DDInter, WHO INN; shared base (stream download, ZIP extraction, SourceName enum); date-stamped snapshots with SHA-256 manifests
-- Bronze layer defined — PostgreSQL `bronze.*` tables (1:1 with raw CSVs + `_source_file`, `_load_ts`, `_batch_id`); schema in `src/caveat/pipeline/bronze/schema.sql`; loader stub ready
 - Silver SÚKL parser in progress — INN normalization (Latin form → WHO rINN), drug/ingredient/composition extraction, withdrawn registration handling
 
 **Owner:** Alisa Benesova  
