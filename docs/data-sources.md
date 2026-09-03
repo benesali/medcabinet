@@ -83,7 +83,7 @@ The bronze ingestor (`caveat-ingest-sukl`) auto-discovers the current ZIP URL fr
 |---------|-----|------|-------|
 | SPC (product characteristics PDFs) | `SOD{YYYYMMDD}/SPC{YYYYMMDD}.zip` | ~2.6 GB | 3+ (NLP extraction) |
 | PIL (patient leaflet PDFs) | `SOD{YYYYMMDD}/PIL{YYYYMMDD}.zip` | ~3 GB | 3+ (NLP extraction) |
-| DLP History (monthly CSVs back to 2021) | `SOD{YYYY}/DLP{YYYYMM}.zip` (~9 MB/month) or `SOD{YYYY}/DLP{YYYY}.zip` (~100 MB/year) | — | 1+ (dbt snapshots, UC9 history) |
+| DLP History (monthly CSVs, 2024–present) | `SOD{YYYY}/DLP{YYYYMM}.zip` (~9 MB/month) — `[FACT — verified 2026-09-03: 2024-01 through 2026-08 available (32 months); 2023 and older return 404]` | — | 1+ (dbt snapshots, UC9 history) |
 
 SPC and PIL require NLP extraction — not viable as structured sources in Phase 1. DLP History enables dbt snapshot-based change detection and supports UC9 ("what did the system answer before and why did it change?").
 

@@ -221,13 +221,52 @@ def main() -> None:
         sys.exit(1)
 
 
-def discover_history_urls(catalog_url: str = HISTORY_CATALOG_PAGE_URL) -> list[str]:
-    """Fetch the history catalog page and return all available history ZIP URLs."""
+def discover_history_urls(
+    catalog_url: str = HISTORY_CATALOG_PAGE_URL,
+    probe_years: list[int] | None = None,
+) -> list[str]:
+    """Return all available SÚKL DLP history ZIP URLs.
+
+    Fetches the history catalog page (which lists the current year only) and
+    also probes direct URLs for prior years via HTTP HEAD requests — SÚKL does
+    not list older years on the catalog page, but their ZIPs exist at the
+    standard SOD{YYYY}/DLP{YYYYMM}.zip path.
+
+    Verified available range: 2024-01 through current month (2023 and older → 404).
+
+    Args:
+        catalog_url: History catalog page URL (lists current-year ZIPs in page HTML).
+        probe_years: Additional years to probe via HEAD requests.
+                     Defaults to [current_year - 2, current_year - 1].
+    """
+    from datetime import date
+
+    today = date.today()
+
+    # Step 1 — catalog page (current year)
     logger.info("Discovering history URLs from %s", catalog_url)
     response = httpx.get(catalog_url, follow_redirects=True, timeout=30)
     response.raise_for_status()
-    urls = sorted(set(_HISTORY_URL_RE.findall(response.text)))
-    logger.info("Found %d history ZIPs on catalog page", len(urls))
+    found: set[str] = set(_HISTORY_URL_RE.findall(response.text))
+
+    # Step 2 — probe prior years via HEAD requests
+    if probe_years is None:
+        probe_years = [today.year - 2, today.year - 1]
+
+    for year in probe_years:
+        for month in range(1, 13):
+            if date(year, month, 1) >= today.replace(day=1):
+                continue
+            url = history_url(year, month)
+            try:
+                r = httpx.head(url, follow_redirects=True, timeout=8)
+                if r.status_code == 200:
+                    found.add(url)
+            except httpx.RequestError:
+                pass
+
+    urls = sorted(found)
+    logger.info("Found %d history ZIPs total", len(urls))
     return urls
 
 
