@@ -185,7 +185,10 @@ def _extract_csvs(zip_path: Path, dest_dir: Path) -> list[Path]:
             member_posix = member.replace("\\", "/")
             basename = Path(member_posix).name
             zf.extract(member, dest_dir)
-            extracted_at = dest_dir / Path(member_posix)
+            # zf.extract writes using the raw member name as-is. On Linux,
+            # backslashes are literal filename chars, so a Windows-style member
+            # "sub\\file.csv" lands at dest_dir/"sub\\file.csv", not dest_dir/sub/file.csv.
+            extracted_at = dest_dir / member
             out = dest_dir / basename
             if extracted_at != out:
                 extracted_at.rename(out)
