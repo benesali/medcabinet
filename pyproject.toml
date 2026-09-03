@@ -27,6 +27,8 @@ dependencies = [
 [project.scripts]
 caveat-ingest-sukl = "caveat.pipeline.bronze.sukl:main"
 caveat-ingest-sukl-history = "caveat.pipeline.bronze.sukl:main_history"
+caveat-ingest-sukl-spc = "caveat.pipeline.bronze.sukl:main_spc"
+caveat-ingest-sukl-pil = "caveat.pipeline.bronze.sukl:main_pil"
 
 [project.optional-dependencies]
 dev = [

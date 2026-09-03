@@ -1,11 +1,15 @@
-"""Bronze-layer ingestor for the SÚKL DLP (Databáze léčivých přípravků) dataset.
+"""Bronze-layer ingestor for SÚKL open datasets.
 
-The DLP ZIP is published monthly at opendata.sukl.cz and contains a set of CSV files
-covering drug registrations, active ingredients, compositions, ATC codes, and synonyms.
+All datasets are published at opendata.sukl.cz and share the same SOD{YYYYMMDD}
+release folder.  The ZIP filenames differ only in the dataset prefix.
 
 Datasets handled:
-  dlp          — current full extract (30 CSVs, monthly)
-  dlp_history  — historical monthly archives back to 2021 (one ZIP per month)
+  dlp          — current full extract (30 CSVs, monthly, ~9.5 MB ZIP)
+  dlp_history  — historical monthly archives 2024–present (one ZIP per month, ~9 MB)
+  spc          — Summary of Product Characteristics PDFs (~2.6 GB ZIP, Phase 3+)
+  pil          — Patient Information Leaflets PDFs (~3.1 GB ZIP, Phase 3+)
+
+SPC and PIL are stored as ZIPs in bronze — NLP extraction happens in Phase 3.
 
 Usage:
     uv run caveat-ingest-sukl                        # latest DLP, download today
@@ -13,6 +17,8 @@ Usage:
     uv run caveat-ingest-sukl --force                # re-download even if snapshot exists
     uv run caveat-ingest-sukl-history --year 2026    # download all months for a year
     uv run caveat-ingest-sukl-history --year 2026 --month 8  # single month
+    uv run caveat-ingest-sukl-spc                    # latest SPC PDF bundle (~2.6 GB)
+    uv run caveat-ingest-sukl-pil                    # latest PIL PDF bundle (~3.1 GB)
 """
 from __future__ import annotations
 
@@ -58,8 +64,27 @@ _HISTORY_URL_RE = re.compile(
     r"https://opendata\.sukl\.cz/soubory/SOD\d{4}/DLP\d{6}\.zip"
 )
 
+# SPC — Summary of Product Characteristics PDF bundle.
+# Verify at: https://opendata.sukl.cz/?q=katalog/spc-souhrn-udaju-o-lecivem-pripravku-summary-product-characteristics
+SPC_CATALOG_PAGE_URL = (
+    "https://opendata.sukl.cz/?q=katalog/"
+    "spc-souhrn-udaju-o-lecivem-pripravku-summary-product-characteristics"
+)
+
+# PIL — Patient Information Leaflets PDF bundle.
+# Verify at: https://opendata.sukl.cz/?q=katalog/pil-pribalove-informace-product-information-leaflet
+PIL_CATALOG_PAGE_URL = (
+    "https://opendata.sukl.cz/?q=katalog/pil-pribalove-informace-product-information-leaflet"
+)
+
+# Regex to extract the SPC or PIL ZIP URL from a catalog page.
+_SPC_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/SPC\d{8}\.zip")
+_PIL_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/PIL\d{8}\.zip")
+
 SOURCE_NAME = "SÚKL"
 SOURCE_NAME_HISTORY = "SÚKL-history"
+SOURCE_NAME_SPC = "SÚKL-SPC"
+SOURCE_NAME_PIL = "SÚKL-PIL"
 # All DLP CSV files use Windows-1250 encoding (verified 2026-09-02).
 CSV_ENCODING = "cp1250"
 
@@ -392,6 +417,177 @@ def main_history() -> None:
                 logger.error("HTTP %d for %d-%02d: %s", exc.response.status_code, args.year, month, exc)
         except Exception as exc:
             logger.error("Failed %d-%02d: %s", args.year, month, exc)
+
+
+def _discover_pdf_bundle_url(catalog_url: str, pattern: re.Pattern[str], label: str) -> str:
+    """Fetch a SÚKL catalog page and extract the latest PDF bundle ZIP URL."""
+    logger.info("Discovering %s URL from %s", label, catalog_url)
+    response = httpx.get(catalog_url, follow_redirects=True, timeout=30)
+    response.raise_for_status()
+    match = pattern.search(response.text)
+    if not match:
+        raise RuntimeError(
+            f"Could not find a {label} ZIP URL on {catalog_url}. "
+            "The page structure may have changed — check it manually."
+        )
+    url = match.group(0)
+    logger.info("Latest %s URL: %s", label, url)
+    return url
+
+
+def _version_from_pdf_url(url: str, prefix: str) -> str:
+    """Extract the date string from an SPC or PIL ZIP URL."""
+    m = re.search(rf"{prefix}(\d{{8}})\.zip", url)
+    return m.group(1) if m else "unknown"
+
+
+def _download_pdf_bundle(
+    bronze_root: Path,
+    dataset: str,          # 'spc' or 'pil'
+    source_name: str,
+    catalog_url: str,
+    url_re: re.Pattern[str],
+    snapshot_date: date | None = None,
+    force: bool = False,
+    url: str | None = None,
+) -> Path:
+    """Download a SÚKL PDF bundle ZIP to bronze and return the snapshot directory.
+
+    The ZIP is kept intact — NLP extraction happens in Phase 3.
+    Idempotent: skips download if manifest already exists, unless *force* is True.
+    """
+    if snapshot_date is None:
+        snapshot_date = date.today()
+
+    dest = bronze_root / "sukl" / dataset / snapshot_date.isoformat()
+    manifest_path = dest / "manifest.json"
+
+    if manifest_path.exists() and not force:
+        logger.info("%s snapshot already exists: %s — skipping", dataset.upper(), dest)
+        return dest
+
+    if url is None:
+        url = _discover_pdf_bundle_url(catalog_url, url_re, dataset.upper())
+
+    dest.mkdir(parents=True, exist_ok=True)
+    prefix = dataset.upper()
+    zip_name = Path(url).name
+    zip_path = dest / zip_name
+
+    logger.info("Downloading %s (%s) → %s", dataset.upper(), url, zip_path)
+    _stream_download(url, zip_path)
+
+    checksum = sha256_file(zip_path)
+    size = zip_path.stat().st_size
+
+    # Count PDFs inside the ZIP without extracting them.
+    with zipfile.ZipFile(zip_path) as zf:
+        pdf_count = sum(1 for m in zf.namelist() if m.lower().endswith(".pdf"))
+
+    manifest = BronzeManifest(
+        source=source_name,
+        source_version=_version_from_pdf_url(url, prefix),
+        downloaded_at=datetime.now(tz=timezone.utc).isoformat(),
+        url=url,
+        filename=zip_name,
+        size_bytes=size,
+        checksum=checksum,
+        encoding="binary",
+        files=[zip_name],
+        row_count=pdf_count,
+    )
+    write_manifest(dest, manifest)
+    logger.info("%s manifest written — %d PDFs, %.2f GB", dataset.upper(), pdf_count, size / 1e9)
+    return dest
+
+
+def download_spc(
+    bronze_root: Path,
+    snapshot_date: date | None = None,
+    force: bool = False,
+    url: str | None = None,
+) -> Path:
+    """Download the latest SÚKL SPC PDF bundle to the bronze layer."""
+    return _download_pdf_bundle(
+        bronze_root=bronze_root,
+        dataset="spc",
+        source_name=SOURCE_NAME_SPC,
+        catalog_url=SPC_CATALOG_PAGE_URL,
+        url_re=_SPC_URL_RE,
+        snapshot_date=snapshot_date,
+        force=force,
+        url=url,
+    )
+
+
+def download_pil(
+    bronze_root: Path,
+    snapshot_date: date | None = None,
+    force: bool = False,
+    url: str | None = None,
+) -> Path:
+    """Download the latest SÚKL PIL PDF bundle to the bronze layer."""
+    return _download_pdf_bundle(
+        bronze_root=bronze_root,
+        dataset="pil",
+        source_name=SOURCE_NAME_PIL,
+        catalog_url=PIL_CATALOG_PAGE_URL,
+        url_re=_PIL_URL_RE,
+        snapshot_date=snapshot_date,
+        force=force,
+        url=url,
+    )
+
+
+def _main_pdf_bundle(dataset: str, download_fn: object, size_hint: str) -> None:
+    """Shared CLI logic for caveat-ingest-sukl-spc and caveat-ingest-sukl-pil."""
+    import typing
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
+    parser = argparse.ArgumentParser(
+        description=(
+            f"Download the SÚKL {dataset.upper()} PDF bundle to the bronze layer "
+            f"(Phase 3+ / NLP extraction, {size_hint}). "
+            "The ZIP is stored intact — no extraction at this stage."
+        )
+    )
+    parser.add_argument(
+        "--date",
+        type=date.fromisoformat,
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="Snapshot date label (default: today)",
+    )
+    parser.add_argument("--force", action="store_true", help="Re-download existing snapshot")
+    parser.add_argument("--url", default=None, help="Explicit ZIP URL")
+    parser.add_argument(
+        "--bronze-root",
+        type=Path,
+        default=Path(os.environ.get("CAVEAT_BRONZE_ROOT", "data/bronze")),
+        metavar="PATH",
+    )
+    args = parser.parse_args()
+    try:
+        dest = typing.cast(typing.Callable[..., Path], download_fn)(
+            bronze_root=args.bronze_root,
+            snapshot_date=args.date,
+            force=args.force,
+            url=args.url,
+        )
+        print(f"Bronze snapshot ready: {dest}")
+    except Exception as exc:
+        logger.error("%s", exc)
+        sys.exit(1)
+
+
+def main_spc() -> None:
+    """CLI entrypoint: download the SÚKL SPC PDF bundle (~2.6 GB)."""
+    _main_pdf_bundle("spc", download_spc, "~2.6 GB")
+
+
+def main_pil() -> None:
+    """CLI entrypoint: download the SÚKL PIL PDF bundle (~3.1 GB)."""
+    _main_pdf_bundle("pil", download_pil, "~3.1 GB")
 
 
 if __name__ == "__main__":
