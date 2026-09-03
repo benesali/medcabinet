@@ -4,7 +4,6 @@ Network-free: all tests use either pure functions or in-memory / tmp_path fixtur
 """
 from __future__ import annotations
 
-import io
 import zipfile
 from datetime import date
 from pathlib import Path
@@ -19,7 +18,6 @@ from caveat.pipeline.bronze.sukl import (
     history_url,
     snapshot_dir,
 )
-
 
 # ---------------------------------------------------------------------------
 # _version_from_url

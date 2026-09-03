@@ -29,7 +29,7 @@ import re
 import sys
 import zipfile
 from collections.abc import Callable
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import httpx
@@ -155,7 +155,7 @@ def download(
     manifest = BronzeManifest(
         source=SOURCE_NAME,
         source_version=_version_from_url(url),
-        downloaded_at=datetime.now(tz=timezone.utc).isoformat(),
+        downloaded_at=datetime.now(tz=UTC).isoformat(),
         url=url,
         filename=Path(url).name,  # e.g. "DLP20260827.zip"
         size_bytes=sum(f.stat().st_size for f in extracted),
@@ -170,18 +170,17 @@ def download(
 
 def _stream_download(url: str, dest: Path) -> None:
     """Stream *url* to *dest*, printing a progress indicator."""
-    with httpx.Client(follow_redirects=True, timeout=180) as client:
-        with client.stream("GET", url) as response:
-            response.raise_for_status()
-            total = int(response.headers.get("content-length", 0))
-            received = 0
-            with dest.open("wb") as fh:
-                for chunk in response.iter_bytes(chunk_size=65536):
-                    fh.write(chunk)
-                    received += len(chunk)
-                    if total:
-                        print(f"\r  {received / total * 100:.1f}%  ({received:,} / {total:,} B)", end="", flush=True)
-            print()
+    with httpx.Client(follow_redirects=True, timeout=180) as client, client.stream("GET", url) as response:
+        response.raise_for_status()
+        total = int(response.headers.get("content-length", 0))
+        received = 0
+        with dest.open("wb") as fh:
+            for chunk in response.iter_bytes(chunk_size=65536):
+                fh.write(chunk)
+                received += len(chunk)
+                if total:
+                    print(f"\r  {received / total * 100:.1f}%  ({received:,} / {total:,} B)", end="", flush=True)
+        print()
 
 
 def _extract_csvs(zip_path: Path, dest_dir: Path) -> list[Path]:
@@ -344,7 +343,7 @@ def download_history_month(
     manifest = BronzeManifest(
         source=SOURCE_NAME_HISTORY,
         source_version=f"{year}{month:02d}",
-        downloaded_at=datetime.now(tz=timezone.utc).isoformat(),
+        downloaded_at=datetime.now(tz=UTC).isoformat(),
         url=url,
         filename=Path(url).name,
         size_bytes=sum(f.stat().st_size for f in extracted),
@@ -498,7 +497,7 @@ def _download_pdf_bundle(
     manifest = BronzeManifest(
         source=source_name,
         source_version=_version_from_pdf_url(url, prefix),
-        downloaded_at=datetime.now(tz=timezone.utc).isoformat(),
+        downloaded_at=datetime.now(tz=UTC).isoformat(),
         url=url,
         filename=zip_name,
         size_bytes=size,
