@@ -36,6 +36,8 @@ The AI layer is strictly informational. No treatment recommendations, no dosing,
 |-------|-----------|
 | Knowledge graph | Neo4j |
 | Application data | PostgreSQL |
+| ETL — Bronze | PostgreSQL `bronze.*` (asyncpg COPY loader) |
+| ETL — Silver/Gold | dbt-postgres (`dbt/models/`) |
 | Backend | Python + FastAPI |
 | Frontend | React + Next.js |
 | Auth | Azure Entra ID / Auth0 |
@@ -72,8 +74,11 @@ Includes parametric contamination testing: ablation with empty context, fictitio
 **Phase 1 — Data & Graph (in progress)**
 
 - Phase 0 complete — scope, domain model, data source licenses locked
-- Raw ingestors done — SÚKL (DLP, history, SPC, PIL), DDInter, WHO INN; shared base (stream download, ZIP extraction, SourceName enum); date-stamped snapshots with SHA-256 manifests
-- Silver SÚKL parser in progress — INN normalization (Latin form → WHO rINN), drug/ingredient/composition extraction, withdrawn registration handling
+- **Raw layer done** — SÚKL (DLP, history, SPC, PIL), DDInter, WHO INN ingestors; date-stamped snapshots with SHA-256 manifests; `SourceName` enum; shared stream-download + ZIP extraction base
+- **Bronze layer done** — PostgreSQL `bronze.*` tables 1:1 with raw CSVs; asyncpg COPY loader for SÚKL and DDInter; per-source schema files (`bronze/sukl.py`, `bronze/ddinter.py`, `bronze/who_inn.py`)
+- **Silver staging done** — dbt project in `dbt/`; six staging models for SÚKL + DDInter; `usan_inn_divergences` seed for INN normalization; dbt schema tests; `silver.*` schema in PostgreSQL
+- Gold dbt models (Neo4j-ready) — next
+- Neo4j graph load, graph invariants CI — next
 
 **Owner:** Alisa Benesova  
 **Collaborator/Mentor:** Martina Fusková
