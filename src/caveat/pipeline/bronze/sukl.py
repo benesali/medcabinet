@@ -355,7 +355,10 @@ def download_history_month(
 def main_history() -> None:
     """CLI entrypoint: download SÚKL DLP history snapshots to the bronze layer.
 
-    Downloads one month, a full year, or lists available URLs from the catalog page.
+    One-time backfill tool — not needed for ongoing operation.
+    Running caveat-ingest-sukl monthly already builds history in data/bronze/sukl/dlp/.
+    Use this only to bootstrap historical data before the project started (available
+    from 2024-01; verified 2026-09-03).
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 
