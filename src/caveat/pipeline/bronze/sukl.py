@@ -20,6 +20,7 @@ Usage:
     uv run caveat-ingest-sukl-spc                    # latest SPC PDF bundle (~2.6 GB)
     uv run caveat-ingest-sukl-pil                    # latest PIL PDF bundle (~3.1 GB)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,39 +45,28 @@ CATALOG_PAGE_URL = "https://opendata.sukl.cz/?q=katalog%2Fdatabaze-lecivych-prip
 
 # History catalog page (monthly archives back to 2021).
 # Verify at: https://opendata.sukl.cz/?q=katalog/historie-databaze-lecivych-pripravku-dlp
-HISTORY_CATALOG_PAGE_URL = (
-    "https://opendata.sukl.cz/?q=katalog/historie-databaze-lecivych-pripravku-dlp"
-)
+HISTORY_CATALOG_PAGE_URL = "https://opendata.sukl.cz/?q=katalog/historie-databaze-lecivych-pripravku-dlp"
 
 # Pattern that matches the current DLP ZIP URL embedded in the catalog page HTML.
-_DLP_URL_RE = re.compile(
-    r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/DLP\d{8}\.zip"
-)
+_DLP_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/DLP\d{8}\.zip")
 
 # History ZIPs follow a different SOD folder pattern (year-only, not year+month+day).
 # URL template: .../soubory/SOD{YYYY}/DLP{YYYYMM}.zip
 # Example verified from history catalog: SOD2026/DLP202608.zip
-_HISTORY_URL_TEMPLATE = (
-    "https://opendata.sukl.cz/soubory/SOD{year}/DLP{year}{month:02d}.zip"
-)
+_HISTORY_URL_TEMPLATE = "https://opendata.sukl.cz/soubory/SOD{year}/DLP{year}{month:02d}.zip"
 
 # Pattern to discover all available history ZIPs from the catalog page.
-_HISTORY_URL_RE = re.compile(
-    r"https://opendata\.sukl\.cz/soubory/SOD\d{4}/DLP\d{6}\.zip"
-)
+_HISTORY_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{4}/DLP\d{6}\.zip")
 
 # SPC — Summary of Product Characteristics PDF bundle.
 # Verify at: https://opendata.sukl.cz/?q=katalog/spc-souhrn-udaju-o-lecivem-pripravku-summary-product-characteristics
 SPC_CATALOG_PAGE_URL = (
-    "https://opendata.sukl.cz/?q=katalog/"
-    "spc-souhrn-udaju-o-lecivem-pripravku-summary-product-characteristics"
+    "https://opendata.sukl.cz/?q=katalog/spc-souhrn-udaju-o-lecivem-pripravku-summary-product-characteristics"
 )
 
 # PIL — Patient Information Leaflets PDF bundle.
 # Verify at: https://opendata.sukl.cz/?q=katalog/pil-pribalove-informace-product-information-leaflet
-PIL_CATALOG_PAGE_URL = (
-    "https://opendata.sukl.cz/?q=katalog/pil-pribalove-informace-product-information-leaflet"
-)
+PIL_CATALOG_PAGE_URL = "https://opendata.sukl.cz/?q=katalog/pil-pribalove-informace-product-information-leaflet"
 
 # Regex to extract the SPC or PIL ZIP URL from a catalog page.
 _SPC_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/SPC\d{8}\.zip")
@@ -210,9 +200,7 @@ def main() -> None:
     """CLI entrypoint: parse arguments and run the SÚKL DLP bronze download."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 
-    parser = argparse.ArgumentParser(
-        description="Download the SÚKL DLP drug-registry CSV bundle to the bronze layer."
-    )
+    parser = argparse.ArgumentParser(description="Download the SÚKL DLP drug-registry CSV bundle to the bronze layer.")
     parser.add_argument(
         "--date",
         type=date.fromisoformat,
@@ -453,7 +441,7 @@ def _version_from_pdf_url(url: str, prefix: str) -> str:
 
 def _download_pdf_bundle(
     bronze_root: Path,
-    dataset: str,          # 'spc' or 'pil'
+    dataset: str,  # 'spc' or 'pil'
     source_name: str,
     catalog_url: str,
     url_re: re.Pattern[str],

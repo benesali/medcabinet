@@ -2,6 +2,7 @@
 
 Network-free: all tests use either pure functions or in-memory / tmp_path fixtures.
 """
+
 from __future__ import annotations
 
 import zipfile
@@ -23,6 +24,7 @@ from caveat.pipeline.bronze.sukl import (
 # _version_from_url
 # ---------------------------------------------------------------------------
 
+
 class TestVersionFromUrl:
     def test_standard_url(self) -> None:
         url = "https://opendata.sukl.cz/soubory/SOD20260827/DLP20260827.zip"
@@ -39,6 +41,7 @@ class TestVersionFromUrl:
 # ---------------------------------------------------------------------------
 # _version_from_pdf_url
 # ---------------------------------------------------------------------------
+
 
 class TestVersionFromPdfUrl:
     def test_spc_url(self) -> None:
@@ -57,6 +60,7 @@ class TestVersionFromPdfUrl:
 # snapshot_dir / history_snapshot_dir / history_url
 # ---------------------------------------------------------------------------
 
+
 class TestPathHelpers:
     def test_snapshot_dir(self, tmp_path: Path) -> None:
         result = snapshot_dir(tmp_path, date(2026, 9, 2))
@@ -66,11 +70,14 @@ class TestPathHelpers:
         result = history_snapshot_dir(tmp_path, 2025, 8)
         assert result == tmp_path / "sukl" / "dlp_history" / "2025-08"
 
-    @pytest.mark.parametrize("month, expected_suffix", [
-        (1, "DLP202601.zip"),
-        (8, "DLP202608.zip"),
-        (12, "DLP202612.zip"),
-    ])
+    @pytest.mark.parametrize(
+        "month, expected_suffix",
+        [
+            (1, "DLP202601.zip"),
+            (8, "DLP202608.zip"),
+            (12, "DLP202612.zip"),
+        ],
+    )
     def test_history_url(self, month: int, expected_suffix: str) -> None:
         url = history_url(2026, month)
         assert url.endswith(expected_suffix)
@@ -80,6 +87,7 @@ class TestPathHelpers:
 # ---------------------------------------------------------------------------
 # _extract_csvs
 # ---------------------------------------------------------------------------
+
 
 def _make_zip(tmp_path: Path, members: dict[str, bytes]) -> Path:
     """Build a ZIP at tmp_path/test.zip with the given {name: content} members."""
@@ -118,11 +126,14 @@ class TestExtractCsvs:
         assert result[0].name == "file.csv"
 
     def test_non_csv_members_skipped(self, tmp_path: Path) -> None:
-        zip_path = _make_zip(tmp_path, {
-            "data.csv": b"a\n1\n",
-            "readme.txt": b"ignore me",
-            "schema.xml": b"<x/>",
-        })
+        zip_path = _make_zip(
+            tmp_path,
+            {
+                "data.csv": b"a\n1\n",
+                "readme.txt": b"ignore me",
+                "schema.xml": b"<x/>",
+            },
+        )
         dest = tmp_path / "out"
         dest.mkdir()
         result = _extract_csvs(zip_path, dest)
@@ -130,11 +141,14 @@ class TestExtractCsvs:
         assert result[0].name == "data.csv"
 
     def test_multiple_csvs_all_returned(self, tmp_path: Path) -> None:
-        zip_path = _make_zip(tmp_path, {
-            "a.csv": b"1\n",
-            "b.csv": b"2\n",
-            "c.csv": b"3\n",
-        })
+        zip_path = _make_zip(
+            tmp_path,
+            {
+                "a.csv": b"1\n",
+                "b.csv": b"2\n",
+                "c.csv": b"3\n",
+            },
+        )
         dest = tmp_path / "out"
         dest.mkdir()
         result = _extract_csvs(zip_path, dest)

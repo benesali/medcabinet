@@ -10,16 +10,16 @@ from pathlib import Path
 class BronzeManifest:
     """Metadata written alongside every raw bronze snapshot."""
 
-    source: str                    # "SÚKL" / "DDInter"
-    source_version: str            # date or release tag from the source
-    downloaded_at: str             # ISO 8601, UTC
-    url: str                       # URL the data was fetched from
-    filename: str                  # source archive name (e.g. "DLP20260827.zip")
-    size_bytes: int                # total size of extracted files in bytes
-    checksum: str                  # "sha256:<hex>" of the downloaded archive
-    encoding: str | None = None    # character encoding of extracted files (e.g. "cp1250")
-    files: list[str] | None = None # names of all extracted files, alphabetically sorted
-    row_count: int | None = None   # total rows across key tables; filled in by Silver
+    source: str  # "SÚKL" / "DDInter"
+    source_version: str  # date or release tag from the source
+    downloaded_at: str  # ISO 8601, UTC
+    url: str  # URL the data was fetched from
+    filename: str  # source archive name (e.g. "DLP20260827.zip")
+    size_bytes: int  # total size of extracted files in bytes
+    checksum: str  # "sha256:<hex>" of the downloaded archive
+    encoding: str | None = None  # character encoding of extracted files (e.g. "cp1250")
+    files: list[str] | None = None  # names of all extracted files, alphabetically sorted
+    row_count: int | None = None  # total rows across key tables; filled in by Silver
 
 
 MANIFEST_FILENAME = "manifest.json"
