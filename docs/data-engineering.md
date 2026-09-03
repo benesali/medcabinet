@@ -21,14 +21,14 @@ Raw open-source data → cleansed → INN-linked → Neo4j-ready.
 | Transformations | dbt (dbt-core + dbt-postgres or dbt-duckdb) | Incremental models, built-in schema/data tests, documentation, lineage DAG, snapshot strategy |
 | Neo4j load | Python script consuming Gold tables | dbt is SQL-only — the Cypher MERGE step is a separate Python job |
 | Orchestration | Prefect 3.x | Chosen over Makefile (too plain) and Airflow (too heavy). Provides scheduling, run history, retries, local UI. |
-| Bronze storage | Filesystem with date-stamped directories (or S3/MinIO if deployed) | Immutable raw snapshots, cheap, trivially versionable |
+| Raw storage | Filesystem with date-stamped directories (or S3/MinIO if deployed) | Immutable raw snapshots, cheap, trivially versionable |
 
-### Bronze — Raw Ingestion (Immutable, Historized)
+### Raw — Landing (Immutable, Historized)
 
 Store everything exactly as received. **Never overwrite — append with version stamp.**
 
 ```
-bronze/
+raw/
   sukl/
     dlp/
       2026-09-02/  ← date of download
@@ -50,18 +50,21 @@ bronze/
       2026-09-02/
         manifest.json
   ddinter/
-    2026-09-01/
+    2.0/
       interactions.csv
       manifest.json  ← {source: "DDInter", version: "2.0", checksum, row_count: 237000}
+  who_inn/
+    133/
+      manifest.json
 ```
 
-> **Encoding:** All SÚKL DLP CSVs use Windows-1250 (`cp1250`) with semicolon delimiter. Verified 2026-09-02. The `encoding` field in `BronzeManifest` records this for every snapshot. Silver models must open with `encoding='cp1250'`.
+> **Encoding:** All SÚKL DLP CSVs use Windows-1250 (`cp1250`) with semicolon delimiter. Verified 2026-09-02. The `encoding` field in `RawManifest` records this for every snapshot. Bronze loader and Silver models must open with `encoding='cp1250'`.
 
-**Why historize Bronze:**
-- **Rollback:** if a new source version introduces bad data (e.g., DDInter reclassifies severity en masse), rebuild the graph from the previous Bronze snapshot
+**Why historize Raw:**
+- **Rollback:** if a new source version introduces bad data (e.g., DDInter reclassifies severity en masse), rebuild from the previous Raw snapshot
 - **Audit:** regulators (or your mentor) can ask "what data did the system use on date X?" and you can answer
-- **Diff:** compare two Bronze versions to detect what changed before promoting to Silver
-- **Reproducibility:** any Gold state can be reproduced from its Bronze inputs + the dbt transformation code
+- **Diff:** compare two Raw snapshots to detect what changed before promoting to Bronze/Silver
+- **Reproducibility:** any Gold state can be reproduced from its Raw inputs + the transformation code
 
 **dbt snapshot** (for slowly changing dimensions): use `dbt snapshot` with `check` strategy on key source tables to automatically track when a drug registration changes, an interaction severity shifts, or a source entry disappears.
 
@@ -197,7 +200,7 @@ The `seed_usan_inn_divergences` file ensures the pipeline normalizes `acetaminop
 
 ## Change Detection Between Source Versions
 
-When a new Bronze snapshot arrives, dbt can detect what changed before promoting to Gold.
+When a new Raw snapshot is loaded into Bronze, dbt can detect what changed before promoting to Gold.
 
 | Change type | Detection | Action |
 |-------------|-----------|--------|
@@ -236,12 +239,12 @@ Run as dbt tests on Gold models. Failures block the Neo4j load.
 dbt provides lineage automatically through its DAG:
 
 ```
-bronze/sukl/*.xml → stg_sukl__drugs → gold_drugs → [Neo4j loader] → (:Drug)
-bronze/sukl/*.xml → stg_sukl__ingredients → gold_ingredients → [Neo4j loader] → (:ActiveIngredient)
-bronze/ddinter/*.csv → stg_ddinter__interactions → gold_interactions → [Neo4j loader] → (:Interaction)
+raw/sukl/dlp/YYYY-MM-DD/*.csv → bronze.sukl_* → stg_sukl__drugs → gold_drugs → [Neo4j loader] → (:Drug)
+raw/sukl/dlp/YYYY-MM-DD/*.csv → bronze.sukl_* → stg_sukl__ingredients → gold_ingredients → [Neo4j loader] → (:ActiveIngredient)
+raw/ddinter/2.0/*.csv → bronze.ddinter_interactions → stg_ddinter__interactions → gold_interactions → [Neo4j loader] → (:Interaction)
 ```
 
-Each Gold record carries `_loaded_at`, `_source_version`, `_bronze_path` — full provenance chain from Neo4j node back to the raw file.
+Each Gold record carries `_loaded_at`, `_source_version`, `_raw_path` — full provenance chain from Neo4j node back to the raw file.
 
 `dbt docs generate` produces a browsable lineage graph — useful for the portfolio showcase and for Martina's review.
 
@@ -273,11 +276,11 @@ The `inventory_item` points to `Drug`, not `ActiveIngredient`, because the user 
 
 | Trigger | Action |
 |---------|--------|
-| New SÚKL XML release | Download to new Bronze directory → re-run dbt from staging |
-| DDInter version update | Download to new Bronze directory → re-run DDInter Silver + Gold models → diff report |
+| New SÚKL release | Download to new Raw directory → load into Bronze → re-run dbt from staging |
+| DDInter version update | Download to new Raw directory → load into Bronze → re-run DDInter Silver + Gold models → diff report |
 | Manual alias addition | Update seed file → re-run entity resolution models only |
 | Graph invariant failure | Neo4j load blocked — fix Gold data or transformation logic |
-| Rollback needed | Point dbt at previous Bronze directory → re-run full pipeline → reload Neo4j |
+| Rollback needed | Point dbt at previous Bronze batch → re-run full pipeline → reload Neo4j |
 
 Each successful Gold load creates a new `GraphSnapshot` record. The `audit_log` table records which snapshot answered each user query — required for UC9 ("why did the answer change?").
 

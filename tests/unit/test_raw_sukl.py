@@ -1,4 +1,4 @@
-"""Unit tests for the SÚKL DLP Bronze ingestor (caveat.pipeline.bronze.sukl).
+"""Unit tests for the SÚKL DLP raw ingestor (caveat.pipeline.raw.sukl).
 
 Network-free: all tests use either pure functions or in-memory / tmp_path fixtures.
 """
@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from caveat.pipeline.bronze.base import extract_csvs
-from caveat.pipeline.bronze.sukl import (
+from caveat.pipeline.raw.base import extract_csvs
+from caveat.pipeline.raw.sukl import (
     _version_from_pdf_url,
     _version_from_url,
     history_snapshot_dir,

@@ -9,7 +9,7 @@ Datasets handled:
   spc          — Summary of Product Characteristics PDFs (~2.6 GB ZIP, Phase 3+)
   pil          — Patient Information Leaflets PDFs (~3.1 GB ZIP, Phase 3+)
 
-SPC and PIL are stored as ZIPs in bronze — NLP extraction happens in Phase 3.
+SPC and PIL are stored as ZIPs in raw — NLP extraction happens in Phase 3.
 
 Usage:
     uv run caveat-ingest-sukl                        # latest DLP, download today
@@ -35,8 +35,8 @@ from pathlib import Path
 
 import httpx
 
-from caveat.pipeline.bronze.base import SourceName, extract_csvs, stream_download
-from caveat.pipeline.bronze.manifest import BronzeManifest, sha256_file, write_manifest
+from caveat.pipeline.raw.base import SourceName, extract_csvs, stream_download
+from caveat.pipeline.raw.manifest import RawManifest, sha256_file, write_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -103,18 +103,18 @@ def _version_from_url(url: str) -> str:
     return m.group(1) if m else "unknown"
 
 
-def snapshot_dir(bronze_root: Path, snapshot_date: date) -> Path:
+def snapshot_dir(raw_root: Path, snapshot_date: date) -> Path:
     """Return the path of the date-stamped SÚKL DLP snapshot directory."""
-    return bronze_root / "sukl" / "dlp" / snapshot_date.isoformat()
+    return raw_root / "sukl" / "dlp" / snapshot_date.isoformat()
 
 
 def download(
-    bronze_root: Path,
+    raw_root: Path,
     snapshot_date: date | None = None,
     force: bool = False,
     url: str | None = None,
 ) -> Path:
-    """Download the SÚKL DLP CSV bundle to the bronze layer and return the snapshot directory.
+    """Download the SÚKL DLP CSV bundle to the raw layer and return the snapshot directory.
 
     Discovers the latest ZIP URL automatically unless *url* is provided.
     Idempotent: skips the download when a manifest already exists for *snapshot_date*,
@@ -123,7 +123,7 @@ def download(
     if snapshot_date is None:
         snapshot_date = date.today()
 
-    dest = snapshot_dir(bronze_root, snapshot_date)
+    dest = snapshot_dir(raw_root, snapshot_date)
     manifest_path = dest / "manifest.json"
 
     if manifest_path.exists() and not force:
@@ -143,7 +143,7 @@ def download(
     extracted = extract_csvs(zip_path, dest)
     zip_path.unlink()
 
-    manifest = BronzeManifest(
+    manifest = RawManifest(
         source=SOURCE_NAME,
         source_version=_version_from_url(url),
         downloaded_at=datetime.now(tz=UTC).isoformat(),
@@ -160,10 +160,10 @@ def download(
 
 
 def main() -> None:
-    """CLI entrypoint: parse arguments and run the SÚKL DLP bronze download."""
+    """CLI entrypoint: parse arguments and run the SÚKL DLP raw download."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 
-    parser = argparse.ArgumentParser(description="Download the SÚKL DLP drug-registry CSV bundle to the bronze layer.")
+    parser = argparse.ArgumentParser(description="Download the SÚKL DLP drug-registry CSV bundle to the raw layer.")
     parser.add_argument(
         "--date",
         type=date.fromisoformat,
@@ -182,17 +182,17 @@ def main() -> None:
         help="Explicit DLP ZIP URL (default: auto-discovered from the catalog page)",
     )
     parser.add_argument(
-        "--bronze-root",
+        "--raw-root",
         type=Path,
-        default=Path(os.environ.get("CAVEAT_BRONZE_ROOT", "data/bronze")),
+        default=Path(os.environ.get("CAVEAT_RAW_ROOT", "data/raw")),
         metavar="PATH",
-        help="Bronze root directory (default: data/bronze or $CAVEAT_BRONZE_ROOT)",
+        help="Raw root directory (default: data/raw or $CAVEAT_RAW_ROOT)",
     )
     args = parser.parse_args()
 
     try:
         dest = download(
-            bronze_root=args.bronze_root,
+            raw_root=args.raw_root,
             snapshot_date=args.date,
             force=args.force,
             url=args.url,
@@ -255,23 +255,23 @@ def history_url(year: int, month: int) -> str:
     return _HISTORY_URL_TEMPLATE.format(year=year, month=month)
 
 
-def history_snapshot_dir(bronze_root: Path, year: int, month: int) -> Path:
+def history_snapshot_dir(raw_root: Path, year: int, month: int) -> Path:
     """Return the path of the date-stamped SÚKL DLP history snapshot directory."""
-    return bronze_root / "sukl" / "dlp_history" / f"{year}-{month:02d}"
+    return raw_root / "sukl" / "dlp_history" / f"{year}-{month:02d}"
 
 
 def download_history_month(
-    bronze_root: Path,
+    raw_root: Path,
     year: int,
     month: int,
     force: bool = False,
     url: str | None = None,
 ) -> Path:
-    """Download one month of SÚKL DLP history to the bronze layer.
+    """Download one month of SÚKL DLP history to the raw layer.
 
     Idempotent: skips download when a manifest already exists, unless *force* is True.
     """
-    dest = history_snapshot_dir(bronze_root, year, month)
+    dest = history_snapshot_dir(raw_root, year, month)
     manifest_path = dest / "manifest.json"
 
     if manifest_path.exists() and not force:
@@ -291,7 +291,7 @@ def download_history_month(
     extracted = extract_csvs(zip_path, dest)
     zip_path.unlink()
 
-    manifest = BronzeManifest(
+    manifest = RawManifest(
         source=SOURCE_NAME_HISTORY,
         source_version=f"{year}{month:02d}",
         downloaded_at=datetime.now(tz=UTC).isoformat(),
@@ -308,10 +308,10 @@ def download_history_month(
 
 
 def main_history() -> None:
-    """CLI entrypoint: download SÚKL DLP history snapshots to the bronze layer.
+    """CLI entrypoint: download SÚKL DLP history snapshots to the raw layer.
 
     One-time backfill tool — not needed for ongoing operation.
-    Running caveat-ingest-sukl monthly already builds history in data/bronze/sukl/dlp/.
+    Running caveat-ingest-sukl monthly already builds history in data/raw/sukl/dlp/.
     Use this only to bootstrap historical data before the project started (available
     from 2024-01; verified 2026-09-03).
     """
@@ -319,7 +319,7 @@ def main_history() -> None:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Download SÚKL DLP monthly history snapshots to the bronze layer. "
+            "Download SÚKL DLP monthly history snapshots to the raw layer. "
             "History is available back to ~2021 at opendata.sukl.cz."
         )
     )
@@ -339,11 +339,11 @@ def main_history() -> None:
         help="List available history ZIP URLs from the catalog page and exit",
     )
     parser.add_argument(
-        "--bronze-root",
+        "--raw-root",
         type=Path,
-        default=Path(os.environ.get("CAVEAT_BRONZE_ROOT", "data/bronze")),
+        default=Path(os.environ.get("CAVEAT_RAW_ROOT", "data/raw")),
         metavar="PATH",
-        help="Bronze root directory (default: data/bronze or $CAVEAT_BRONZE_ROOT)",
+        help="Raw root directory (default: data/raw or $CAVEAT_RAW_ROOT)",
     )
     args = parser.parse_args()
 
@@ -365,7 +365,7 @@ def main_history() -> None:
             continue
         try:
             dest = download_history_month(
-                bronze_root=args.bronze_root,
+                raw_root=args.raw_root,
                 year=args.year,
                 month=month,
                 force=args.force,
@@ -403,7 +403,7 @@ def _version_from_pdf_url(url: str, prefix: str) -> str:
 
 
 def _download_pdf_bundle(
-    bronze_root: Path,
+    raw_root: Path,
     dataset: str,  # 'spc' or 'pil'
     source_name: str,
     catalog_url: str,
@@ -412,7 +412,7 @@ def _download_pdf_bundle(
     force: bool = False,
     url: str | None = None,
 ) -> Path:
-    """Download a SÚKL PDF bundle ZIP to bronze and return the snapshot directory.
+    """Download a SÚKL PDF bundle ZIP to raw and return the snapshot directory.
 
     The ZIP is kept intact — NLP extraction happens in Phase 3.
     Idempotent: skips download if manifest already exists, unless *force* is True.
@@ -420,7 +420,7 @@ def _download_pdf_bundle(
     if snapshot_date is None:
         snapshot_date = date.today()
 
-    dest = bronze_root / "sukl" / dataset / snapshot_date.isoformat()
+    dest = raw_root / "sukl" / dataset / snapshot_date.isoformat()
     manifest_path = dest / "manifest.json"
 
     if manifest_path.exists() and not force:
@@ -445,7 +445,7 @@ def _download_pdf_bundle(
     with zipfile.ZipFile(zip_path) as zf:
         pdf_count = sum(1 for m in zf.namelist() if m.lower().endswith(".pdf"))
 
-    manifest = BronzeManifest(
+    manifest = RawManifest(
         source=source_name,
         source_version=_version_from_pdf_url(url, prefix),
         downloaded_at=datetime.now(tz=UTC).isoformat(),
@@ -463,14 +463,14 @@ def _download_pdf_bundle(
 
 
 def download_spc(
-    bronze_root: Path,
+    raw_root: Path,
     snapshot_date: date | None = None,
     force: bool = False,
     url: str | None = None,
 ) -> Path:
-    """Download the latest SÚKL SPC PDF bundle to the bronze layer."""
+    """Download the latest SÚKL SPC PDF bundle to the raw layer."""
     return _download_pdf_bundle(
-        bronze_root=bronze_root,
+        raw_root=raw_root,
         dataset="spc",
         source_name=SOURCE_NAME_SPC,
         catalog_url=SPC_CATALOG_PAGE_URL,
@@ -482,14 +482,14 @@ def download_spc(
 
 
 def download_pil(
-    bronze_root: Path,
+    raw_root: Path,
     snapshot_date: date | None = None,
     force: bool = False,
     url: str | None = None,
 ) -> Path:
-    """Download the latest SÚKL PIL PDF bundle to the bronze layer."""
+    """Download the latest SÚKL PIL PDF bundle to the raw layer."""
     return _download_pdf_bundle(
-        bronze_root=bronze_root,
+        raw_root=raw_root,
         dataset="pil",
         source_name=SOURCE_NAME_PIL,
         catalog_url=PIL_CATALOG_PAGE_URL,
@@ -505,7 +505,7 @@ def _main_pdf_bundle(dataset: str, download_fn: Callable[..., Path], size_hint: 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
     parser = argparse.ArgumentParser(
         description=(
-            f"Download the SÚKL {dataset.upper()} PDF bundle to the bronze layer "
+            f"Download the SÚKL {dataset.upper()} PDF bundle to the raw layer "
             f"(Phase 3+ / NLP extraction, {size_hint}). "
             "The ZIP is stored intact — no extraction at this stage."
         )
@@ -520,15 +520,15 @@ def _main_pdf_bundle(dataset: str, download_fn: Callable[..., Path], size_hint: 
     parser.add_argument("--force", action="store_true", help="Re-download existing snapshot")
     parser.add_argument("--url", default=None, help="Explicit ZIP URL")
     parser.add_argument(
-        "--bronze-root",
+        "--raw-root",
         type=Path,
-        default=Path(os.environ.get("CAVEAT_BRONZE_ROOT", "data/bronze")),
+        default=Path(os.environ.get("CAVEAT_RAW_ROOT", "data/raw")),
         metavar="PATH",
     )
     args = parser.parse_args()
     try:
         dest = download_fn(
-            bronze_root=args.bronze_root,
+            raw_root=args.raw_root,
             snapshot_date=args.date,
             force=args.force,
             url=args.url,

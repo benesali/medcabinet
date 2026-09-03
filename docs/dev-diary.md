@@ -4,15 +4,15 @@ Running log of decisions, blockers, and discoveries during development. Newest e
 
 ---
 
-## 2026-09-02 (SÚKL DLP bronze ingest — data discovery)
+## 2026-09-02 (SÚKL DLP raw ingest — data discovery)
 
 - `[FACT]` **SÚKL data format confirmed by downloading actual data.** The DLP dataset is a ZIP of ~30 CSV files (not XML as originally assumed), encoding Windows-1250, semicolon-delimited, published monthly. Latest: `DLP20260827.zip` (~9.5 MB). `[SOURCED: online, primary | opendata.sukl.cz | accessed 2026-09-02]`
 - `[FACT]` **INN field is Latin pharmacopoeial form, not normalized WHO rINN.** `dlp_lecivelatky.NAZEV_INN` contains e.g. `PARACETAMOLUM`, `BISACODYLUM`. Silver must lowercase + strip Latin suffix. Previous docs assumed an `activeSubstance` XML field — corrected.
 - `[FACT]` **`dlp_slozeni.S` flag must be filtered.** `S='L'` = active ingredient (*léčivá látka*); `S='X'` = excipient. CONTAINS edges must use `S='L'` only. Confirmed: rows with `AMNT='PL'` (*dle povahy*) are excipients that also have `S='X'`.
 - `[FACT]` **Scale confirmed:** 69 759 drug registrations, 3 378 active ingredients, 807 466 composition rows, 273 065 synonym entries.
 - `[FACT]` **Three additional SÚKL datasets identified:** DLP History (monthly CSVs back to 2021, cp1250, ~9 MB/month — useful for dbt change detection / UC9); SPC PDFs (~2.6 GB); PIL PDFs (~3 GB). SPC/PIL deferred to Phase 3+ (NLP). History is Phase 1 candidate.
-- Bronze ingestor built and successfully run: `src/caveat/pipeline/bronze/sukl.py`. Auto-discovers current ZIP URL from catalog page via regex. Manifest records encoding, file list, and checksum of the source archive.
-- Docs updated: `data-sources.md` (SÚKL technical details section), `data-engineering.md` (Bronze layout, Silver pipeline corrected for actual CSV structure).
+- Raw ingestor built and successfully run: `src/caveat/pipeline/raw/sukl.py`. Auto-discovers current ZIP URL from catalog page via regex. Manifest records encoding, file list, and checksum of the source archive.
+- Docs updated: `data-sources.md` (SÚKL technical details section), `data-engineering.md` (Raw layout, Silver pipeline corrected for actual CSV structure).
 - Orchestration decision locked: **Prefect 3.x** (not Makefile). Flows will live in `src/caveat/pipeline/flows/`.
 
 ---

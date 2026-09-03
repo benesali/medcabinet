@@ -72,7 +72,7 @@ Includes parametric contamination testing: ablation with empty context, fictitio
 **Phase 1 — Data & Graph (in progress)**
 
 - Phase 0 complete — scope, domain model, data source licenses locked
-- Bronze ingestors done — SÚKL (DLP, history, SPC, PIL), DDInter, WHO INN; shared base (stream download, ZIP extraction, SourceName enum); date-stamped snapshots with SHA-256 manifests
+- Raw ingestors done — SÚKL (DLP, history, SPC, PIL), DDInter, WHO INN; shared base (stream download, ZIP extraction, SourceName enum); date-stamped snapshots with SHA-256 manifests
 - Silver SÚKL parser in progress — INN normalization (Latin form → WHO rINN), drug/ingredient/composition extraction, withdrawn registration handling
 
 **Owner:** Alisa Benesova  

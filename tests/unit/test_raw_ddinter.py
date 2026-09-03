@@ -1,10 +1,10 @@
-"""Unit tests for the DDInter bronze ingestor."""
+"""Unit tests for the DDInter raw ingestor."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from caveat.pipeline.bronze.ddinter import snapshot_dir
+from caveat.pipeline.raw.ddinter import snapshot_dir
 
 
 class TestSnapshotDir:

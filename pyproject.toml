@@ -25,12 +25,12 @@ dependencies = [
 ]
 
 [project.scripts]
-caveat-ingest-sukl = "caveat.pipeline.bronze.sukl:main"
-caveat-ingest-sukl-history = "caveat.pipeline.bronze.sukl:main_history"
-caveat-ingest-sukl-spc = "caveat.pipeline.bronze.sukl:main_spc"
-caveat-ingest-sukl-pil = "caveat.pipeline.bronze.sukl:main_pil"
-caveat-ingest-ddinter = "caveat.pipeline.bronze.ddinter:main"
-caveat-ingest-who-inn = "caveat.pipeline.bronze.who_inn:main"
+caveat-raw-sukl = "caveat.pipeline.raw.sukl:main"
+caveat-raw-sukl-history = "caveat.pipeline.raw.sukl:main_history"
+caveat-raw-sukl-spc = "caveat.pipeline.raw.sukl:main_spc"
+caveat-raw-sukl-pil = "caveat.pipeline.raw.sukl:main_pil"
+caveat-raw-ddinter = "caveat.pipeline.raw.ddinter:main"
+caveat-raw-who-inn = "caveat.pipeline.raw.who_inn:main"
 
 [project.optional-dependencies]
 dev = [

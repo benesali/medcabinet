@@ -1,4 +1,4 @@
-"""Unit tests for the WHO INN bronze ingestor."""
+"""Unit tests for the WHO INN raw ingestor."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from caveat.pipeline.bronze.who_inn import download, snapshot_dir
+from caveat.pipeline.raw.who_inn import download, snapshot_dir
 
 
 class TestSnapshotDir:
@@ -27,11 +27,11 @@ class TestDownloadIdempotent:
 
         called: list[str] = []
         monkeypatch.setattr(
-            "caveat.pipeline.bronze.who_inn.stream_download",
+            "caveat.pipeline.raw.who_inn.stream_download",
             lambda url, path: called.append(url),
         )
 
-        result = download(bronze_root=tmp_path, url="https://example.com/inn.csv", version="133")
+        result = download(raw_root=tmp_path, url="https://example.com/inn.csv", version="133")
         assert result == dest
         assert called == []
 
@@ -45,10 +45,10 @@ class TestDownloadIdempotent:
         def fake_download(url: str, path: Path) -> None:
             path.write_bytes(csv_content)
 
-        monkeypatch.setattr("caveat.pipeline.bronze.who_inn.stream_download", fake_download)
+        monkeypatch.setattr("caveat.pipeline.raw.who_inn.stream_download", fake_download)
 
         result = download(
-            bronze_root=tmp_path,
+            raw_root=tmp_path,
             url="https://example.com/inn.csv",
             version="133",
             force=True,
@@ -66,10 +66,10 @@ class TestDownloadCsv:
         def fake_download(url: str, path: Path) -> None:
             path.write_bytes(csv_content)
 
-        monkeypatch.setattr("caveat.pipeline.bronze.who_inn.stream_download", fake_download)
+        monkeypatch.setattr("caveat.pipeline.raw.who_inn.stream_download", fake_download)
 
         dest = download(
-            bronze_root=tmp_path,
+            raw_root=tmp_path,
             url="https://example.com/inn_list_133.csv",
             version="133",
         )
@@ -89,10 +89,10 @@ class TestDownloadZip:
         def fake_download(url: str, path: Path) -> None:
             path.write_bytes(zip_bytes_path.read_bytes())
 
-        monkeypatch.setattr("caveat.pipeline.bronze.who_inn.stream_download", fake_download)
+        monkeypatch.setattr("caveat.pipeline.raw.who_inn.stream_download", fake_download)
 
         dest = download(
-            bronze_root=tmp_path,
+            raw_root=tmp_path,
             url="https://example.com/inn_list.zip",
             version="133",
         )
@@ -110,10 +110,10 @@ class TestDownloadPdf:
         def fake_download(url: str, path: Path) -> None:
             path.write_bytes(pdf_content)
 
-        monkeypatch.setattr("caveat.pipeline.bronze.who_inn.stream_download", fake_download)
+        monkeypatch.setattr("caveat.pipeline.raw.who_inn.stream_download", fake_download)
 
         dest = download(
-            bronze_root=tmp_path,
+            raw_root=tmp_path,
             url="https://example.com/inn_list_133.pdf",
             version="133",
         )

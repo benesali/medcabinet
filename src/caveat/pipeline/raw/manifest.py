@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 @dataclass
-class BronzeManifest:
-    """Metadata written alongside every raw bronze snapshot."""
+class RawManifest:
+    """Metadata written alongside every raw snapshot."""
 
     source: str  # "SÚKL" / "DDInter"
     source_version: str  # date or release tag from the source
@@ -19,13 +19,13 @@ class BronzeManifest:
     checksum: str  # "sha256:<hex>" of the downloaded archive
     encoding: str | None = None  # character encoding of extracted files (e.g. "cp1250")
     files: list[str] | None = None  # names of all extracted files, alphabetically sorted
-    row_count: int | None = None  # total rows across key tables; filled in by Silver
+    row_count: int | None = None  # total rows across key tables; filled in by Bronze
 
 
 MANIFEST_FILENAME = "manifest.json"
 
 
-def write_manifest(directory: Path, manifest: BronzeManifest) -> None:
+def write_manifest(directory: Path, manifest: RawManifest) -> None:
     """Serialise *manifest* to ``manifest.json`` inside *directory*."""
     (directory / MANIFEST_FILENAME).write_text(
         json.dumps(asdict(manifest), indent=2, ensure_ascii=False),
@@ -33,10 +33,10 @@ def write_manifest(directory: Path, manifest: BronzeManifest) -> None:
     )
 
 
-def read_manifest(directory: Path) -> BronzeManifest:
+def read_manifest(directory: Path) -> RawManifest:
     """Read and deserialise ``manifest.json`` from *directory*."""
     data = json.loads((directory / MANIFEST_FILENAME).read_text(encoding="utf-8"))
-    return BronzeManifest(**data)
+    return RawManifest(**data)
 
 
 def sha256_file(path: Path) -> str:

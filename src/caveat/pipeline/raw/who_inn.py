@@ -25,8 +25,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from caveat.pipeline.bronze.base import SourceName, extract_csvs, stream_download
-from caveat.pipeline.bronze.manifest import BronzeManifest, sha256_file, write_manifest
+from caveat.pipeline.raw.base import SourceName, extract_csvs, stream_download
+from caveat.pipeline.raw.manifest import RawManifest, sha256_file, write_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -40,18 +40,17 @@ def snapshot_dir(bronze_root: Path, version: str) -> Path:
 
 
 def download(
-    bronze_root: Path,
+    raw_root: Path,
     url: str,
     version: str = "latest",
     force: bool = False,
 ) -> Path:
-    """Download WHO INN data to the bronze layer.
+    """Download WHO INN data to the raw layer.
 
     Accepts a CSV, ZIP, or PDF URL. Idempotent: skips when manifest already
-    exists unless *force* is True. PDFs are stored as-is; Silver extracts names
-    from them later.
+    exists unless *force* is True. PDFs are stored as-is; Bronze loads them later.
     """
-    dest = snapshot_dir(bronze_root, version)
+    dest = snapshot_dir(raw_root, version)
     manifest_path = dest / "manifest.json"
 
     if manifest_path.exists() and not force:
@@ -86,7 +85,7 @@ def download(
         size = dest_file.stat().st_size
         files = [filename]
 
-    manifest = BronzeManifest(
+    manifest = RawManifest(
         source=SourceName.WHO_INN,
         source_version=version,
         downloaded_at=datetime.now(tz=UTC).isoformat(),
@@ -107,7 +106,7 @@ def main() -> None:
     """CLI entrypoint: download WHO INN list to the bronze layer."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 
-    parser = argparse.ArgumentParser(description="Download WHO INN list to the bronze layer.")
+    parser = argparse.ArgumentParser(description="Download WHO INN list to the raw layer.")
     parser.add_argument(
         "--url",
         required=True,
@@ -120,21 +119,21 @@ def main() -> None:
     )
     parser.add_argument("--force", action="store_true", help="Re-download if snapshot exists")
     parser.add_argument(
-        "--bronze-root",
+        "--raw-root",
         type=Path,
-        default=Path(os.environ.get("CAVEAT_BRONZE_ROOT", "data/bronze")),
+        default=Path(os.environ.get("CAVEAT_RAW_ROOT", "data/raw")),
         metavar="PATH",
     )
     args = parser.parse_args()
 
     try:
         dest = download(
-            bronze_root=args.bronze_root,
+            raw_root=args.raw_root,
             url=args.url,
             version=args.version,
             force=args.force,
         )
-        print(f"Bronze snapshot ready: {dest}")
+        print(f"Raw snapshot ready: {dest}")
     except Exception as exc:
         logger.error("%s", exc)
         sys.exit(1)

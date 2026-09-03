@@ -1,4 +1,4 @@
-"""Unit tests for caveat.pipeline.bronze.base shared utilities."""
+"""Unit tests for caveat.pipeline.raw.base shared utilities."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from caveat.pipeline.bronze.base import SourceName, extract_csvs
+from caveat.pipeline.raw.base import SourceName, extract_csvs
 
 
 class TestSourceName:

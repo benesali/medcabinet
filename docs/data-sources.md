@@ -58,7 +58,7 @@ Every alias accumulated in the pipeline carries `_alias_source` and `_alias_lang
 | Update frequency | Monthly |
 | Schema reference | `https://opendata.sukl.cz/soubory/DLP_datove_rozhrani{YYYYMMDD}.csv` |
 
-The bronze ingestor (`caveat-ingest-sukl`) auto-discovers the current ZIP URL from the catalog page.
+The raw ingestor (`caveat-raw-sukl`) auto-discovers the current ZIP URL from the catalog page.
 
 ### Key CSV Files
 
