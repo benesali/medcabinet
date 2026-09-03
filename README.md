@@ -47,7 +47,7 @@ The AI layer is strictly informational. No treatment recommendations, no dosing,
 
 ## Data sources
 
-Open-licensed sources only: SÚKL (CZ), ŠÚKL (SK), DDInter, DrugCentral, ChEMBL. DrugBank excluded — non-commercial license only.
+Open-licensed sources only: SÚKL (CZ), ŠÚKL (SK), DDInter, ChEMBL, WHO INN (canonical INN pivot), RxNorm (EN/US synonym bridge). DrugBank excluded — non-commercial license only. DrugCentral under evaluation for indication enrichment.
 
 ---
 
@@ -69,7 +69,11 @@ Includes parametric contamination testing: ablation with empty context, fictitio
 
 ## Status
 
-Phase 0 — decisions and domain model. 
+**Phase 1 — Data & Graph (in progress)**
+
+- Phase 0 complete — scope, domain model, data source licenses locked
+- Bronze SÚKL ingestor done — downloads DLP ZIP, DLP history, SPC/PIL bundles; writes date-stamped bronze with manifest
+- Silver SÚKL parser in progress — INN normalization (Latin form → WHO rINN), drug/ingredient/composition extraction, withdrawn registration handling
 
 **Owner:** Alisa Benesova  
 **Collaborator/Mentor:** Martina Fusková
