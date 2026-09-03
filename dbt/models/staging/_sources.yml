@@ -1,0 +1,60 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    description: >
+      1:1 copies of raw CSV files, loaded by the Python asyncpg loader
+      (caveat-bronze-load-sukl / caveat-bronze-load-ddinter). All columns TEXT.
+      Append-only: multiple _batch_id values may coexist; staging models
+      filter to the latest batch.
+
+    tables:
+      - name: sukl_drugs
+        description: >
+          dlp_lecivepripravky.csv — SÚKL drug registrations.
+          ~69 759 rows per batch (2026-08).
+        columns:
+          - name: KOD_SUKL
+            description: SÚKL registration code (primary key in source).
+          - name: REG
+            description: Registration status — R = registered, other = withdrawn/cancelled.
+          - name: ATC_WHO
+            description: ATC classification code.
+
+      - name: sukl_ingredients
+        description: >
+          dlp_lecivelatky.csv — SÚKL active ingredients.
+          ~3 378 rows per batch (2026-08).
+        columns:
+          - name: KOD_LATKY
+            description: Ingredient code (primary key in source).
+          - name: NAZEV_INN
+            description: >
+              Latin pharmacopoeial form — NOT the normalized WHO rINN.
+              e.g. PARACETAMOLUM, IBUPROFENI. Normalized to rINN in Silver.
+
+      - name: sukl_contains
+        description: >
+          dlp_slozeni.csv — drug-to-ingredient composition with dose.
+          ~807 466 rows per batch (2026-08). S='L' = active; S='X' = excipient.
+
+      - name: sukl_atc
+        description: dlp_atc.csv — ATC classification codes with CZ and EN descriptions.
+
+      - name: sukl_synonyms
+        description: >
+          dlp_synonyma.csv — ingredient aliases.
+          ~273 065 rows per batch. ZDROJ field is the source/language tag.
+
+      - name: sukl_cancelled
+        description: dlp_zruseneregistrace.csv — cancelled registrations.
+
+      - name: ddinter_interactions
+        description: >
+          DDInter v2.0 drug-drug interaction pairs.
+          [SOURCED: online, primary | DDInter v2.0 | ddinter.scbdd.com | accessed 2026-09-03]
+          Column names verified against the actual download.
+        columns:
+          - name: Level
+            description: Severity — Major / Moderate / Minor / Unknown.

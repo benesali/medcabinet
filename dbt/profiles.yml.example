@@ -1,0 +1,12 @@
+caveat:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('CAVEAT_DB_HOST', 'localhost') }}"
+      port: 5432
+      user: "{{ env_var('CAVEAT_DB_USER') }}"
+      password: "{{ env_var('CAVEAT_DB_PASSWORD') }}"
+      dbname: "{{ env_var('CAVEAT_DB_NAME', 'caveat') }}"
+      schema: silver
+      threads: 4

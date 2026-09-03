@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: stg_sukl__drugs
+    description: >
+      SÚKL drug registrations — one row per registration code, latest batch.
+      Source: dlp_lecivepripravky.csv via bronze.sukl_drugs.
+    columns:
+      - name: registration_code
+        description: KOD_SUKL from source.
+        tests:
+          - not_null
+          - unique
+      - name: name
+        tests:
+          - not_null
+      - name: status
+        description: "'active' (REG=R) or 'withdrawn' (all other REG values)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [active, withdrawn]
+      - name: atc_code
+        tests:
+          - not_null
+
+  - name: stg_sukl__ingredients
+    description: >
+      SÚKL active ingredients — one row per ingredient code, latest batch.
+      inn_normalized is the best-effort INN; inn_needs_review flags records
+      not covered by the usan_inn_divergences seed.
+      Source: dlp_lecivelatky.csv via bronze.sukl_ingredients.
+    columns:
+      - name: ingredient_code
+        tests:
+          - not_null
+          - unique
+      - name: inn_latin
+        tests:
+          - not_null
+      - name: inn_normalized
+        tests:
+          - not_null
+      - name: inn_needs_review
+        description: "true when no seed mapping exists — latin form used as-is."
+
+  - name: stg_sukl__contains
+    description: >
+      SÚKL composition — active ingredients only (S=L filtered), with dose.
+      Excipients excluded. Source: dlp_slozeni.csv via bronze.sukl_contains.
+    columns:
+      - name: registration_code
+        tests:
+          - not_null
+      - name: ingredient_code
+        tests:
+          - not_null
+      - name: ingredient_type
+        description: "Always 'L' — excipients excluded by WHERE clause."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [L]
+
+  - name: stg_sukl__atc
+    description: >
+      SÚKL ATC classification codes with level and format validation.
+      Source: dlp_atc.csv via bronze.sukl_atc.
+    columns:
+      - name: atc_code
+        tests:
+          - not_null
+          - unique
+
+  - name: stg_sukl__synonyms
+    description: >
+      SÚKL ingredient aliases — all ZDROJ source/language tags preserved.
+      Source: dlp_synonyma.csv via bronze.sukl_synonyms.
+    columns:
+      - name: ingredient_code
+        tests:
+          - not_null
+      - name: alias_name
+        tests:
+          - not_null

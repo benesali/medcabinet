@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: stg_ddinter__interactions
+    description: >
+      DDInter v2.0 drug-drug interaction pairs — severity normalized to CAVEAT
+      vocabulary, self-interactions excluded. Drug names are English (INN/USAN/brand)
+      as shipped by DDInter; INN resolution happens in intermediate models.
+      [SOURCED: online, primary | DDInter v2.0 | ddinter.scbdd.com | accessed 2026-09-03]
+    columns:
+      - name: drug1_name
+        tests:
+          - not_null
+      - name: drug2_name
+        tests:
+          - not_null
+      - name: severity
+        description: >
+          Normalized severity: major / moderate / minor / null.
+          null means DDInter listed 'Unknown' — excluded from interaction graph.
+        tests:
+          - accepted_values:
+              values: [major, moderate, minor]
+              config:
+                where: "severity is not null"

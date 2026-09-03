@@ -38,6 +38,7 @@ caveat-bronze-load-ddinter = "caveat.pipeline.bronze.loader:main_ddinter"
 dev = [
     "pre-commit",
     "ipython",
+    "dbt-postgres>=1.8",
 ]
 test = [
     "pytest>=8.0",

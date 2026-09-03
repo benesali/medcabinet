@@ -17,11 +17,11 @@ Raw open-source data → cleansed → INN-linked → Neo4j-ready.
 
 | Concern | Tool | Why |
 |---------|------|-----|
-| Staging warehouse | PostgreSQL (same instance, separate `staging` schema) or DuckDB | Silver/Gold live as SQL tables — queryable, testable, auditable |
-| Transformations | dbt (dbt-core + dbt-postgres or dbt-duckdb) | Incremental models, built-in schema/data tests, documentation, lineage DAG, snapshot strategy |
+| Raw storage | Filesystem — date-stamped directories | Immutable snapshots, cheap, trivially versionable |
+| Bronze warehouse | PostgreSQL (`bronze.*` schema) — loaded by Python asyncpg COPY | Same instance as user data, zero extra infra. DuckDB rejected — no benefit at SÚKL data volumes, extra dependency |
+| Transformations | dbt-postgres (`dbt/`) | Built-in schema/data tests, lineage DAG, snapshot strategy, `dbt docs generate` |
 | Neo4j load | Python script consuming Gold tables | dbt is SQL-only — the Cypher MERGE step is a separate Python job |
 | Orchestration | Prefect 3.x | Chosen over Makefile (too plain) and Airflow (too heavy). Provides scheduling, run history, retries, local UI. |
-| Raw storage | Filesystem with date-stamped directories (or S3/MinIO if deployed) | Immutable raw snapshots, cheap, trivially versionable |
 
 ### Raw — Landing (Immutable, Historized)
 
@@ -75,9 +75,61 @@ raw/
 | ChEMBL | REST API → JSON | INN, SMILES, molecular targets, bioactivities |
 | RxNorm | REST API → JSON | CUI, drug names (multi-language), synonyms, ingredient relationships |
 
+### Bronze — PostgreSQL Tables (1:1 with Raw CSVs)
+
+Each raw CSV file has a corresponding PostgreSQL table in the `bronze` schema. All source columns are TEXT — no casting, no business rules. Three technical metadata columns are appended to every table:
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `_source_file` | TEXT NOT NULL | Filename of the CSV this row came from |
+| `_load_ts` | TEXT NOT NULL | ISO 8601 UTC timestamp of the load |
+| `_batch_id` | TEXT NOT NULL | Raw snapshot identifier (e.g. `2026-09-02` for SÚKL, `2.0` for DDInter) |
+
+**Tables (all in `bronze.*` schema):**
+
+| Table | Source file | Key columns |
+|-------|-------------|-------------|
+| `sukl_drugs` | `dlp_lecivepripravky.csv` | KOD_SUKL, NAZEV, ATC_WHO, REG, VYDEJ |
+| `sukl_ingredients` | `dlp_lecivelatky.csv` | KOD_LATKY, NAZEV_INN (Latin form), NAZEV_EN |
+| `sukl_contains` | `dlp_slozeni.csv` | KOD_SUKL, KOD_LATKY, S (active/excipient), AMNT, UN |
+| `sukl_atc` | `dlp_atc.csv` | ATC, NAZEV, NAZEV_EN |
+| `sukl_synonyms` | `dlp_synonyma.csv` | KOD_LATKY, NAZEV, ZDROJ (source/language tag) |
+| `sukl_cancelled` | `dlp_zruseneregistrace.csv` | KOD_SUKL, NAZEV, DATUM_ZRUSENI |
+| `ddinter_interactions` | DDInter download CSV | Drug1, Drug2, Level, Interaction |
+| `who_inn` | WHO INN CSV (if not PDF) | INN, Status, List_number, CAS |
+
+**Loaders:**
+
+```
+uv run caveat-bronze-load-sukl --batch-id 2026-09-02
+uv run caveat-bronze-load-ddinter --batch-id 2.0
+```
+
+Bronze tables are append-only. Multiple `_batch_id` values can coexist — dbt Silver models always filter to the latest batch with `WHERE _batch_id = (SELECT max(_batch_id) FROM ...)`.
+
+---
+
 ### Silver — Cleanse and Normalize (dbt models)
 
-One normalized record per entity. Deduplication happens here. Each transformation is a dbt model with schema tests.
+dbt project: `dbt/`. Staging models materialize as views in the `silver` schema. Sources point at `bronze.*`.
+
+**Run:**
+```
+cd dbt && dbt seed && dbt run --select staging
+```
+
+**Implemented staging models:**
+
+| dbt model | Source table | Key transformations |
+|-----------|-------------|---------------------|
+| `stg_sukl__drugs` | `bronze.sukl_drugs` | Column rename, `status` from REG field (R → active, other → withdrawn) |
+| `stg_sukl__ingredients` | `bronze.sukl_ingredients` | INN normalization via `usan_inn_divergences` seed; `inn_needs_review` flag |
+| `stg_sukl__contains` | `bronze.sukl_contains` | Filter `S = 'L'` (active ingredients only); cast dose to numeric |
+| `stg_sukl__atc` | `bronze.sukl_atc` | ATC level from code length; level-5 format validation |
+| `stg_sukl__synonyms` | `bronze.sukl_synonyms` | Lowercased `alias_normalized` for entity resolution |
+| `stg_ddinter__interactions` | `bronze.ddinter_interactions` | Severity normalized (Major → major); self-interactions excluded |
+
+**INN normalization in `stg_sukl__ingredients`:** `usan_inn_divergences` seed takes precedence (explicit Latin form → rINN and USAN → rINN mappings). Unmatched ingredients get the raw lowercased latin form and `inn_needs_review = true`. Automated suffix stripping is deferred — element-based names (lithium) and salt forms (ibuprofeni lysini) require case-by-case handling.
 
 **SÚKL → Drug + ActiveIngredient candidates** (`stg_sukl__drugs`, `stg_sukl__ingredients`)
 
