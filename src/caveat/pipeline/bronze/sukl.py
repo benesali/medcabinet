@@ -28,6 +28,7 @@ import os
 import re
 import sys
 import zipfile
+from collections.abc import Callable
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -188,13 +189,19 @@ def _extract_csvs(zip_path: Path, dest_dir: Path) -> list[Path]:
     extracted: list[Path] = []
     with zipfile.ZipFile(zip_path) as zf:
         for member in zf.namelist():
-            if member.lower().endswith(".csv"):
-                zf.extract(member, dest_dir)
-                out = dest_dir / Path(member).name  # flatten any subdirectory in ZIP
-                if (dest_dir / member) != out:
-                    (dest_dir / member).rename(out)
-                extracted.append(out)
-                logger.info("Extracted: %s", out.name)
+            if not member.lower().endswith(".csv"):
+                continue
+            # Normalize Windows-style backslashes (common in ZIPs created on Windows)
+            # before using Path, which treats backslash as a separator only on Windows.
+            member_posix = member.replace("\\", "/")
+            basename = Path(member_posix).name
+            zf.extract(member, dest_dir)
+            extracted_at = dest_dir / Path(member_posix)
+            out = dest_dir / basename
+            if extracted_at != out:
+                extracted_at.rename(out)
+            extracted.append(out)
+            logger.info("Extracted: %s", out.name)
     if not extracted:
         raise RuntimeError(f"No CSV files found in ZIP: {zip_path}")
     return extracted
@@ -264,8 +271,6 @@ def discover_history_urls(
         probe_years: Additional years to probe via HEAD requests.
                      Defaults to [current_year - 2, current_year - 1].
     """
-    from datetime import date
-
     today = date.today()
 
     # Step 1 — catalog page (current year)
@@ -368,7 +373,7 @@ def main_history() -> None:
             "History is available back to ~2021 at opendata.sukl.cz."
         )
     )
-    parser.add_argument("--year", type=int, required=True, help="Year to download (e.g. 2025)")
+    parser.add_argument("--year", type=int, default=None, help="Year to download (e.g. 2025)")
     parser.add_argument(
         "--month",
         type=int,
@@ -396,6 +401,9 @@ def main_history() -> None:
         for url in discover_history_urls():
             print(url)
         return
+
+    if args.year is None:
+        parser.error("--year is required unless --list-available is used")
 
     months = [args.month] if args.month else list(range(1, 13))
     current = date.today()
@@ -542,10 +550,8 @@ def download_pil(
     )
 
 
-def _main_pdf_bundle(dataset: str, download_fn: object, size_hint: str) -> None:
+def _main_pdf_bundle(dataset: str, download_fn: Callable[..., Path], size_hint: str) -> None:
     """Shared CLI logic for caveat-ingest-sukl-spc and caveat-ingest-sukl-pil."""
-    import typing
-
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
     parser = argparse.ArgumentParser(
         description=(
@@ -571,7 +577,7 @@ def _main_pdf_bundle(dataset: str, download_fn: object, size_hint: str) -> None:
     )
     args = parser.parse_args()
     try:
-        dest = typing.cast(typing.Callable[..., Path], download_fn)(
+        dest = download_fn(
             bronze_root=args.bronze_root,
             snapshot_date=args.date,
             force=args.force,
