@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from caveat.pipeline.bronze.base import extract_csvs
 from caveat.pipeline.bronze.sukl import (
-    _extract_csvs,
     _version_from_pdf_url,
     _version_from_url,
     history_snapshot_dir,
@@ -103,7 +103,7 @@ class TestExtractCsvs:
         zip_path = _make_zip(tmp_path, {"file.csv": b"a;b\n1;2\n"})
         dest = tmp_path / "out"
         dest.mkdir()
-        result = _extract_csvs(zip_path, dest)
+        result = extract_csvs(zip_path, dest)
         assert len(result) == 1
         assert result[0].name == "file.csv"
         assert result[0].read_bytes() == b"a;b\n1;2\n"
@@ -112,7 +112,7 @@ class TestExtractCsvs:
         zip_path = _make_zip(tmp_path, {"subdir/file.csv": b"col\nval\n"})
         dest = tmp_path / "out"
         dest.mkdir()
-        result = _extract_csvs(zip_path, dest)
+        result = extract_csvs(zip_path, dest)
         assert len(result) == 1
         assert result[0] == dest / "file.csv"
 
@@ -121,7 +121,7 @@ class TestExtractCsvs:
         zip_path = _make_zip(tmp_path, {"subdir\\file.csv": b"x\n1\n"})
         dest = tmp_path / "out"
         dest.mkdir()
-        result = _extract_csvs(zip_path, dest)
+        result = extract_csvs(zip_path, dest)
         assert len(result) == 1
         assert result[0].name == "file.csv"
 
@@ -136,7 +136,7 @@ class TestExtractCsvs:
         )
         dest = tmp_path / "out"
         dest.mkdir()
-        result = _extract_csvs(zip_path, dest)
+        result = extract_csvs(zip_path, dest)
         assert len(result) == 1
         assert result[0].name == "data.csv"
 
@@ -151,7 +151,7 @@ class TestExtractCsvs:
         )
         dest = tmp_path / "out"
         dest.mkdir()
-        result = _extract_csvs(zip_path, dest)
+        result = extract_csvs(zip_path, dest)
         assert {r.name for r in result} == {"a.csv", "b.csv", "c.csv"}
 
     def test_no_csvs_raises(self, tmp_path: Path) -> None:
@@ -159,4 +159,4 @@ class TestExtractCsvs:
         dest = tmp_path / "out"
         dest.mkdir()
         with pytest.raises(RuntimeError, match="No CSV files found"):
-            _extract_csvs(zip_path, dest)
+            extract_csvs(zip_path, dest)
