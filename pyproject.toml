@@ -36,6 +36,7 @@ caveat-raw-who-inn = "caveat.pipeline.raw.who_inn:main"
 dev = [
     "pre-commit",
     "ipython",
+    "dbt-postgres>=1.8",
 ]
 test = [
     "pytest>=8.0",

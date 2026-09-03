@@ -1,0 +1,12 @@
+alias,inn,alias_lang,notes
+acetaminophen,paracetamol,en-US,USAN for paracetamol (WHO INN) — most common EN divergence in DDInter
+adrenaline,epinephrine,en-UK,Older BAN; INN changed to epinephrine ~2000
+noradrenaline,norepinephrine,en-UK,Same pattern as adrenaline/epinephrine
+frusemide,furosemide,en-UK,Older BAN for furosemide (WHO INN)
+paracetamolum,paracetamol,la,SÚKL NAZEV_INN Latin nominative form
+ibuprofeni,ibuprofen,la,SÚKL NAZEV_INN Latin genitive form
+ibuprofeni lysini,ibuprofen lysine,la,SÚKL salt form — keep full multi-word INN
+warfarinum,warfarin,la,SÚKL Latin form
+diclofenacum,diclofenac,la,SÚKL Latin form
+methotrexatum,methotrexate,la,SÚKL Latin form — never-miss set
+lithium,lithium,la,Element name — no suffix to strip; override protects against regex stripping
