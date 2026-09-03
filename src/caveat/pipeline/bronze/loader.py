@@ -25,7 +25,9 @@ from pathlib import Path
 
 import asyncpg
 
-from caveat.pipeline.bronze.schema import SUKL_TABLES, ddinter_interactions, metadata
+from caveat.pipeline.bronze import metadata
+from caveat.pipeline.bronze.ddinter import ddinter_interactions
+from caveat.pipeline.bronze.sukl import SUKL_TABLES
 
 logger = logging.getLogger(__name__)
 

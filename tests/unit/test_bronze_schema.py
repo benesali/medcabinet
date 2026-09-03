@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from caveat.pipeline.bronze.schema import (
+from caveat.pipeline.bronze import metadata
+from caveat.pipeline.bronze.ddinter import ddinter_interactions
+from caveat.pipeline.bronze.sukl import (
     SUKL_TABLES,
-    ddinter_interactions,
-    metadata,
     sukl_atc,
     sukl_cancelled,
     sukl_contains,
     sukl_drugs,
     sukl_ingredients,
     sukl_synonyms,
-    who_inn,
 )
+from caveat.pipeline.bronze.who_inn import who_inn
 
 
 class TestMetadata:
