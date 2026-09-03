@@ -35,6 +35,7 @@ from pathlib import Path
 
 import httpx
 
+from caveat.pipeline.bronze.base import SourceName, extract_csvs, stream_download
 from caveat.pipeline.bronze.manifest import BronzeManifest, sha256_file, write_manifest
 
 logger = logging.getLogger(__name__)
@@ -72,10 +73,10 @@ PIL_CATALOG_PAGE_URL = "https://opendata.sukl.cz/?q=katalog/pil-pribalove-inform
 _SPC_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/SPC\d{8}\.zip")
 _PIL_URL_RE = re.compile(r"https://opendata\.sukl\.cz/soubory/SOD\d{8}/PIL\d{8}\.zip")
 
-SOURCE_NAME = "SÚKL"
-SOURCE_NAME_HISTORY = "SÚKL-history"
-SOURCE_NAME_SPC = "SÚKL-SPC"
-SOURCE_NAME_PIL = "SÚKL-PIL"
+SOURCE_NAME = SourceName.SUKL
+SOURCE_NAME_HISTORY = SourceName.SUKL_HISTORY
+SOURCE_NAME_SPC = SourceName.SUKL_SPC
+SOURCE_NAME_PIL = SourceName.SUKL_PIL
 # All DLP CSV files use Windows-1250 encoding (verified 2026-09-02).
 CSV_ENCODING = "cp1250"
 
@@ -136,10 +137,10 @@ def download(
 
     zip_path = dest / "_dlp_download.zip"
     logger.info("Downloading %s → %s", url, zip_path)
-    _stream_download(url, zip_path)
+    stream_download(url, zip_path)
 
     checksum = sha256_file(zip_path)
-    extracted = _extract_csvs(zip_path, dest)
+    extracted = extract_csvs(zip_path, dest)
     zip_path.unlink()
 
     manifest = BronzeManifest(
@@ -156,47 +157,6 @@ def download(
     write_manifest(dest, manifest)
     logger.info("Manifest written — %d CSV files, checksum %s", len(extracted), checksum)
     return dest
-
-
-def _stream_download(url: str, dest: Path) -> None:
-    """Stream *url* to *dest*, printing a progress indicator."""
-    with httpx.Client(follow_redirects=True, timeout=180) as client, client.stream("GET", url) as response:
-        response.raise_for_status()
-        total = int(response.headers.get("content-length", 0))
-        received = 0
-        with dest.open("wb") as fh:
-            for chunk in response.iter_bytes(chunk_size=65536):
-                fh.write(chunk)
-                received += len(chunk)
-                if total:
-                    print(f"\r  {received / total * 100:.1f}%  ({received:,} / {total:,} B)", end="", flush=True)
-        print()
-
-
-def _extract_csvs(zip_path: Path, dest_dir: Path) -> list[Path]:
-    """Extract all CSV members from *zip_path* into *dest_dir* and return their paths."""
-    extracted: list[Path] = []
-    with zipfile.ZipFile(zip_path) as zf:
-        for member in zf.namelist():
-            if not member.lower().endswith(".csv"):
-                continue
-            # Normalize Windows-style backslashes (common in ZIPs created on Windows)
-            # before using Path, which treats backslash as a separator only on Windows.
-            member_posix = member.replace("\\", "/")
-            basename = Path(member_posix).name
-            zf.extract(member, dest_dir)
-            # zf.extract writes using the raw member name as-is. On Linux,
-            # backslashes are literal filename chars, so a Windows-style member
-            # "sub\\file.csv" lands at dest_dir/"sub\\file.csv", not dest_dir/sub/file.csv.
-            extracted_at = dest_dir / member
-            out = dest_dir / basename
-            if extracted_at != out:
-                extracted_at.rename(out)
-            extracted.append(out)
-            logger.info("Extracted: %s", out.name)
-    if not extracted:
-        raise RuntimeError(f"No CSV files found in ZIP: {zip_path}")
-    return extracted
 
 
 def main() -> None:
@@ -325,10 +285,10 @@ def download_history_month(
     zip_path = dest / f"_dlp_history_{year}{month:02d}.zip"
 
     logger.info("Downloading history %d-%02d from %s", year, month, url)
-    _stream_download(url, zip_path)
+    stream_download(url, zip_path)
 
     checksum = sha256_file(zip_path)
-    extracted = _extract_csvs(zip_path, dest)
+    extracted = extract_csvs(zip_path, dest)
     zip_path.unlink()
 
     manifest = BronzeManifest(
@@ -476,7 +436,7 @@ def _download_pdf_bundle(
     zip_path = dest / zip_name
 
     logger.info("Downloading %s (%s) → %s", dataset.upper(), url, zip_path)
-    _stream_download(url, zip_path)
+    stream_download(url, zip_path)
 
     checksum = sha256_file(zip_path)
     size = zip_path.stat().st_size
