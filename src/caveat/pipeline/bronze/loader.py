@@ -37,7 +37,7 @@ CSV_DELIMITER_SUKL = ";"
 CSV_DELIMITER_DEFAULT = ","
 
 
-async def ensure_schema(conn: asyncpg.Connection) -> None:  # type: ignore[type-arg]
+async def ensure_schema(conn: asyncpg.Connection) -> None:
     """Create the bronze schema and all tables if they do not exist."""
     await conn.execute("CREATE SCHEMA IF NOT EXISTS bronze")
     for table in metadata.tables.values():
@@ -52,7 +52,7 @@ async def ensure_schema(conn: asyncpg.Connection) -> None:  # type: ignore[type-
 
 
 async def _copy_csv(
-    conn: asyncpg.Connection,  # type: ignore[type-arg]
+    conn: asyncpg.Connection,
     table_name: str,
     csv_path: Path,
     encoding: str,
@@ -80,14 +80,11 @@ async def _copy_csv(
         writer = csv.writer(buf)
         row_count = 0
         for row in reader:
-            writer.writerow(
-                [row.get(c, "") for c in reader.fieldnames]  # type: ignore[arg-type]
-                + [csv_path.name, load_ts, batch_id]
-            )
+            writer.writerow([row.get(c, "") for c in reader.fieldnames] + [csv_path.name, load_ts, batch_id])
             row_count += 1
 
         buf.seek(0)
-        await conn.copy_to_table(  # type: ignore[attr-defined]
+        await conn.copy_to_table(
             table_name,
             schema_name="bronze",
             source=buf,
