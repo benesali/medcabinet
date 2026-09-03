@@ -20,6 +20,7 @@ class TestSourceName:
         names = {s.value for s in SourceName}
         assert "SÚKL" in names
         assert "DDInter" in names
+        assert "WHO-INN" in names
 
 
 def _make_zip(tmp_path: Path, members: dict[str, bytes]) -> Path:

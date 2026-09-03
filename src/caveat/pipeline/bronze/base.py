@@ -18,6 +18,7 @@ class SourceName(StrEnum):
     SUKL_SPC = "SÚKL-SPC"
     SUKL_PIL = "SÚKL-PIL"
     DDINTER = "DDInter"
+    WHO_INN = "WHO-INN"
 
 
 def stream_download(url: str, dest: Path) -> None:
