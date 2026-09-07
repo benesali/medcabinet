@@ -33,12 +33,14 @@ caveat-raw-ddinter = "caveat.pipeline.raw.ddinter:main"
 caveat-raw-who-inn = "caveat.pipeline.raw.who_inn:main"
 caveat-bronze-load-sukl = "caveat.pipeline.bronze.loader:main_sukl"
 caveat-bronze-load-ddinter = "caveat.pipeline.bronze.loader:main_ddinter"
+caveat-bronze-dlt-sukl = "caveat.pipeline.bronze.dlt_sukl:main"
 
 [project.optional-dependencies]
 dev = [
     "pre-commit",
     "ipython",
     "dbt-postgres>=1.8",
+    "dlt[postgres]>=1.4",
 ]
 test = [
     "pytest>=8.0",

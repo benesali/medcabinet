@@ -1,0 +1,4 @@
+[normalize]
+# Preserve original column names (e.g. KOD_SUKL, NAZEV_INN) so dbt Silver models
+# that quote those names work without modification.
+naming_convention = "direct"
