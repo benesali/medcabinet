@@ -18,7 +18,7 @@ Raw open-source data → cleansed → INN-linked → Neo4j-ready.
 | Concern | Tool | Why |
 |---------|------|-----|
 | Raw storage | Filesystem — date-stamped directories | Immutable snapshots, cheap, trivially versionable |
-| Bronze warehouse | PostgreSQL (`bronze.*` schema) — loaded by Python asyncpg COPY | Same instance as user data, zero extra infra. DuckDB rejected — no benefit at SÚKL data volumes, extra dependency |
+| Bronze warehouse | PostgreSQL (`bronze.*` schema) — loaded by Python asyncpg COPY (primary) or dlt (`caveat-bronze-dlt-sukl`, in evaluation) | Same instance as user data, zero extra infra. dlt adds `_dlt_id`/`_dlt_load_id` columns; Silver models ignore them. DuckDB rejected — no benefit at SÚKL data volumes, extra dependency |
 | Transformations | dbt-postgres (`dbt/`) | Built-in schema/data tests, lineage DAG, snapshot strategy, `dbt docs generate` |
 | Neo4j load | Python script consuming Gold tables | dbt is SQL-only — the Cypher MERGE step is a separate Python job |
 | Orchestration | Prefect 3.x | Chosen over Makefile (too plain) and Airflow (too heavy). Provides scheduling, run history, retries, local UI. |
@@ -101,8 +101,12 @@ Each raw CSV file has a corresponding PostgreSQL table in the `bronze` schema. A
 **Loaders:**
 
 ```
+# asyncpg COPY (primary)
 uv run caveat-bronze-load-sukl --batch-id 2026-09-02
 uv run caveat-bronze-load-ddinter --batch-id 2.0
+
+# dlt (alternative, in evaluation — same bronze.sukl_* tables)
+uv run caveat-bronze-dlt-sukl --batch-id 2026-09-02
 ```
 
 Bronze tables are append-only. Multiple `_batch_id` values can coexist — dbt Silver models always filter to the latest batch with `WHERE _batch_id = (SELECT max(_batch_id) FROM ...)`.

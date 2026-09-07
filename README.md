@@ -36,7 +36,7 @@ The AI layer is strictly informational. No treatment recommendations, no dosing,
 |-------|-----------|
 | Knowledge graph | Neo4j |
 | Application data | PostgreSQL |
-| ETL — Bronze | PostgreSQL `bronze.*` (asyncpg COPY loader) |
+| ETL — Bronze | PostgreSQL `bronze.*` (asyncpg COPY loader; dlt alternative in evaluation) |
 | ETL — Silver/Gold | dbt-postgres (`dbt/models/`) |
 | Backend | Python + FastAPI |
 | Frontend | React + Next.js |
