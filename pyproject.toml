@@ -68,7 +68,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.mypy]
 strict = true
-python_version = "3.11"
+python_version = "3.13"
 mypy_path = "src"
 exclude = ["tests/"]
 

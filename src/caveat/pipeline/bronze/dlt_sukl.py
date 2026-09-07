@@ -83,9 +83,7 @@ def _normalize_dsn(dsn: str) -> str:
     CAVEAT_DB_DSN uses postgresql+asyncpg:// (SQLAlchemy driver notation).
     dlt postgres destination expects postgresql://.
     """
-    return dsn.replace("postgresql+asyncpg://", "postgresql://").replace(
-        "postgresql+psycopg2://", "postgresql://"
-    )
+    return dsn.replace("postgresql+asyncpg://", "postgresql://").replace("postgresql+psycopg2://", "postgresql://")
 
 
 def run(dsn: str, raw_root: Path, batch_id: str) -> None:
@@ -115,9 +113,7 @@ def run(dsn: str, raw_root: Path, batch_id: str) -> None:
 def main() -> None:
     """CLI entrypoint: load SÚKL DLP raw snapshot into bronze.sukl_* via dlt."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
-    parser = argparse.ArgumentParser(
-        description="Load SÚKL raw snapshot into bronze.sukl_* via dlt."
-    )
+    parser = argparse.ArgumentParser(description="Load SÚKL raw snapshot into bronze.sukl_* via dlt.")
     parser.add_argument("--batch-id", required=True, help="Snapshot date, e.g. 2026-09-02")
     parser.add_argument(
         "--raw-root",
