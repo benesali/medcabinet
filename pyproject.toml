@@ -76,6 +76,15 @@ exclude = ["tests/"]
 module = ["asyncpg", "asyncpg.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["dlt", "dlt.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# dlt decorators (@dlt.source, @dlt.resource) have no stubs — Any decorator is expected
+module = ["caveat.pipeline.bronze.dlt_sukl"]
+disable_error_code = ["untyped-decorator"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
