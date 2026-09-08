@@ -4,10 +4,11 @@ sources:
   - name: bronze
     schema: bronze
     description: >
-      1:1 copies of raw CSV files, loaded by the Python asyncpg loader
-      (caveat-bronze-load-sukl / caveat-bronze-load-ddinter). All columns TEXT.
-      Append-only: multiple _batch_id values may coexist; staging models
-      filter to the latest batch.
+      1:1 copies of raw CSV files. SÚKL tables may be loaded by either the
+      asyncpg loader (caveat-bronze-load-sukl) or the dlt pipeline
+      (caveat-bronze-dlt-sukl). DDInter loaded by caveat-bronze-load-ddinter.
+      All source columns TEXT. Append-only: multiple _batch_id values may
+      coexist; staging models filter to the latest batch.
 
     tables:
       - name: sukl_drugs

@@ -33,12 +33,14 @@ caveat-raw-ddinter = "caveat.pipeline.raw.ddinter:main"
 caveat-raw-who-inn = "caveat.pipeline.raw.who_inn:main"
 caveat-bronze-load-sukl = "caveat.pipeline.bronze.loader:main_sukl"
 caveat-bronze-load-ddinter = "caveat.pipeline.bronze.loader:main_ddinter"
+caveat-bronze-dlt-sukl = "caveat.pipeline.bronze.dlt_sukl:main"
 
 [project.optional-dependencies]
 dev = [
     "pre-commit",
     "ipython",
     "dbt-postgres>=1.8",
+    "dlt[postgres]>=1.4",
 ]
 test = [
     "pytest>=8.0",
@@ -66,13 +68,22 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.mypy]
 strict = true
-python_version = "3.11"
+python_version = "3.13"
 mypy_path = "src"
 exclude = ["tests/"]
 
 [[tool.mypy.overrides]]
 module = ["asyncpg", "asyncpg.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["dlt", "dlt.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# dlt decorators (@dlt.source, @dlt.resource) have no stubs — Any decorator is expected
+module = ["caveat.pipeline.bronze.dlt_sukl"]
+disable_error_code = ["untyped-decorator"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
